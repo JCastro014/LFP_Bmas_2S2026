@@ -68,3 +68,4 @@ def cargar_intentos(ruta_archivo, lista_jugadores, lista_sudokus):
     except Exception as error:
         print("Error inesperado al leer el archivo: " + str(error))
     return intentos
+#Prueba 
