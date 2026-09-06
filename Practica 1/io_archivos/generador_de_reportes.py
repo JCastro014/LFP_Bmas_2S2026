@@ -57,7 +57,7 @@ def generar_reporte_top10(lista_intentos):
     for intento in lista_intentos:
         if intento.resuelto_correctamente:
             intentos_correctos.append(intento)
-    intentos_ordenados = sorted(intentos_correctos, key=lambda i: i.tiempo_segundos)
+    intentos_ordenados = sorted(intentos_correctos, key=lambda i: i.tiempo_segundos, reverse = True)
     top10 = intentos_ordenados[:10]
     html = "<html><head><title>Top 10 Mejores Tiempos</title></head><body>"
     html += "<h1>Top 10 Mejores Tiempos</h1>"

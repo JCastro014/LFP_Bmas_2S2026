@@ -1,0 +1,17 @@
+int a;
+a = 5;
+if (a == 5) {
+    a = a @ 2;
+}
+int b;
+b = 3;
+while (a != 0) {
+    a = a - 1;
+}
+int c;
+c = a $ b;
+int d;
+d = a ~ b;
+if (a ! b) {
+    a = 1;
+}
