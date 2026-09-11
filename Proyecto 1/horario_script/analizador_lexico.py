@@ -158,3 +158,91 @@ class AnalizadorLexico:
                 columna,
             )
             return self.siguiente_token()
+
+        lexema = self._obtener_lexema(inicio)
+        tipo = self._tipo_de_palabra(lexema, cantidad_letras)
+        if tipo is None:
+            if self.esperando_dia:
+                self._registrar_error(
+                    lexema,
+                    "DIA_NO_RECONOCIDO",
+                    f"Día no reconocido: '{lexema}' en línea {linea}, columna {columna}",
+                    linea,
+                    columna,
+                )
+                self.esperando_dia = False
+            else:
+                self._registrar_error(
+                    lexema,
+                    "CODIGO_MAL_FORMADO",
+                    f"Código mal formado: '{lexema}' en línea {linea}, columna {columna}",
+                    linea,
+                    columna,
+                )
+            return self.siguiente_token()
+        if tipo == "DIA":
+            self.esperando_dia = False
+        elif tipo == "PALABRA_RESERVADA" and lexema == "dia":
+            self.esperando_dia = True
+        return self._crear_token(lexema, tipo, linea, columna)
+
+    def _leer_numero_o_hora(self, linea, columna):
+        inicio = self.posicion
+        while not self._termino() and self._es_digito(self._actual()):
+            self._avanzar()
+
+        cantidad = self.posicion - inicio
+        if cantidad == 2 and not self._termino() and self._actual() == ':':
+            self._avanzar()
+            minutos_inicio = self.posicion
+            while not self._termino() and self._es_digito(self._actual()):
+                self._avanzar()
+
+            minutos = self.posicion - minutos_inicio
+            if minutos != 2:
+                lexema = self._obtener_lexema(inicio)
+                self._registrar_error(
+                    lexema,
+                    "HORA_FUERA_DE_RANGO",
+                    f"Hora fuera de rango en línea {linea}, columna {columna}: debe tener formato HH:MM",
+                    linea,
+                    columna,
+                )
+                self._recuperar()
+                return self.siguiente_token()
+
+            lexema = self._obtener_lexema(inicio)
+            if not self._hora_valida(lexema):
+                self._registrar_error(
+                    lexema,
+                    "HORA_FUERA_DE_RANGO",
+                    f"Hora fuera de rango: '{lexema}' en línea {linea}, columna {columna}",
+                    linea,
+                    columna,
+                )
+            return self._crear_token(lexema, "HORA", linea, columna)
+
+        if not self._termino() and not self._es_separador(self._actual()):
+            while not self._termino() and not self._es_separador(self._actual()):
+                self._avanzar()
+            lexema = self._obtener_lexema(inicio)
+            self._registrar_error(
+                lexema,
+                "HORA_FUERA_DE_RANGO",
+                f"Hora fuera de rango: '{lexema}' en línea {linea}, columna {columna}",
+                linea,
+                columna,
+            )
+            return self.siguiente_token()
+
+        lexema = self._obtener_lexema(inicio)
+        if self.esperando_dia:
+            self._registrar_error(
+                lexema,
+                "DIA_NO_RECONOCIDO",
+                f"Día no reconocido: '{lexema}' en línea {linea}, columna {columna}",
+                linea,
+                columna,
+            )
+            self.esperando_dia = False
+        return self._crear_token(lexema, "ENTERO", linea, columna)
