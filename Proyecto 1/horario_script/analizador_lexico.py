@@ -246,3 +246,128 @@ class AnalizadorLexico:
             )
             self.esperando_dia = False
         return self._crear_token(lexema, "ENTERO", linea, columna)
+
+    def _leer_cadena(self, linea, columna):
+        inicio = self.posicion
+        self._avanzar()
+        cerrada = False
+
+        while not self._termino() and self._actual() != '\n':
+            if self._actual() == '"':
+                self._avanzar()
+                cerrada = True
+                break
+            self._avanzar()
+
+        lexema = self._obtener_lexema(inicio)
+        if not cerrada:
+            self._registrar_error(
+                lexema,
+                "CADENA_SIN_CERRAR",
+                f"Cadena sin cerrar iniciada en línea {linea}, columna {columna}",
+                linea,
+                columna,
+            )
+            return self.siguiente_token()
+        return self._crear_token(lexema, "CADENA", linea, columna)
+
+    def _leer_comentario(self, linea, columna):
+        inicio = self.posicion
+        self._avanzar()
+        if self._termino() or self._actual() != '#':
+            self._registrar_error(
+                '#',
+                "CARACTER_NO_RECONOCIDO",
+                f"Carácter no reconocido: '#' en línea {linea}, columna {columna}",
+                linea,
+                columna,
+            )
+            return self.siguiente_token()
+
+        self._avanzar()
+        while not self._termino() and self._actual() != '\n':
+            self._avanzar()
+        lexema = self._obtener_lexema(inicio)
+        return self._crear_token(lexema, "COMENTARIO_LINEA", linea, columna)
+
+    def _tipo_de_palabra(self, lexema, cantidad_letras):
+        if lexema in self.BLOQUES:
+            return self.BLOQUES[lexema]
+        if lexema in self.ELEMENTOS:
+            return self.ELEMENTOS[lexema]
+        if lexema in self.ATRIBUTOS:
+            return "PALABRA_RESERVADA"
+        if lexema in self.RELACIONES:
+            return self.RELACIONES[lexema]
+        if lexema in self.DIAS:
+            return "DIA"
+        if lexema in self.CATEGORIAS:
+            return "CATEGORIA"
+        if cantidad_letras > 0:
+            return None
+        return None
+
+    def _hora_valida(self, lexema):
+        hora = int(lexema[0] + lexema[1])
+        minuto = int(lexema[3] + lexema[4])
+        if minuto > 59:
+            return False
+        return 6 <= hora <= 21
+
+    def _recuperar(self):
+        while not self._termino() and not self._es_separador(self._actual()):
+            self._avanzar()
+
+    def _ignorar_espacios(self):
+        while not self._termino() and self._actual() in ' \t\r\n':
+            self._avanzar()
+
+    def _crear_token(self, lexema, tipo, linea, columna):
+        token = Token(self.numero_token, lexema, tipo, linea, columna)
+        self.numero_token += 1
+        return token
+
+    def _registrar_error(self, lexema, tipo, descripcion, linea, columna):
+        self.gestor_errores.agregar(
+            lexema,
+            tipo,
+            descripcion,
+            linea,
+            columna,
+        )
+
+    def _obtener_lexema(self, inicio):
+        lexema = ""
+        posicion = inicio
+        while posicion < self.posicion:
+            lexema += self.texto[posicion]
+            posicion += 1
+        return lexema
+
+    def _actual(self):
+        return self.texto[self.posicion]
+
+    def _avanzar(self):
+        caracter = self.texto[self.posicion]
+        self.posicion += 1
+        if caracter == '\n':
+            self.linea += 1
+            self.columna = 1
+        else:
+            self.columna += 1
+
+    def _termino(self):
+        return self.posicion >= len(self.texto)
+
+    def _es_letra(self, caracter):
+        return (
+            ('a' <= caracter <= 'z')
+            or ('A' <= caracter <= 'Z')
+            or caracter == '_'
+        )
+
+    def _es_digito(self, caracter):
+        return '0' <= caracter <= '9'
+
+    def _es_separador(self, caracter):
+        return caracter in ' \t\r\n{}[]:;,"'
