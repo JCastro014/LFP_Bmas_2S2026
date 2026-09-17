@@ -27,6 +27,11 @@ def imprimir_resultados(tokens, errores):
 	print(f"Total de errores: {len(errores)}")
 
 
+
+
+
+#main
+
 def main():
 	carpeta_actual = Path(__file__).parent
 	ruta = Path(sys.argv[1]) if len(sys.argv) > 1 else carpeta_actual / "datos" / "horario_valido.hor"
@@ -43,12 +48,10 @@ def main():
 	except OSError as error:
 		print(f"No se pudo leer el archivo: {error}")
 		return 1
-
 	analizador = AnalizadorLexico(texto)
 	tokens = analizador.analizar()
 	imprimir_resultados(tokens, analizador.errores)
 	return 0
-
-
+	
 if __name__ == "__main__":
 	raise SystemExit(main())
