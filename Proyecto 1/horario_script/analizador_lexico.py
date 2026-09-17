@@ -2,7 +2,7 @@ from .error_lexico import ErrorLexico
 from .gestor_errores import GestorErrores
 from .token import Token
 
-
+#Definicion del alfabeto
 class AnalizadorLexico:
     BLOQUES = {
         "HORARIO": "BLOQUE_HORARIO",
@@ -52,6 +52,17 @@ class AnalizadorLexico:
     }
 
     SIMBOLOS = "{}[]:;,"
+
+
+
+
+
+
+#Fin del alfabeto
+
+
+
+
 
     def __init__(self, texto):
         self.texto = texto
@@ -129,7 +140,7 @@ class AnalizadorLexico:
                 )
                 self._recuperar()
                 return self.siguiente_token()
-
+#Separador 
             if not self._termino() and not self._es_separador(self._actual()):
                 while not self._termino() and not self._es_separador(self._actual()):
                     self._avanzar()
@@ -158,7 +169,7 @@ class AnalizadorLexico:
                 columna,
             )
             return self.siguiente_token()
-
+#obtiene el lexcema
         lexema = self._obtener_lexema(inicio)
         tipo = self._tipo_de_palabra(lexema, cantidad_letras)
         if tipo is None:
@@ -221,7 +232,6 @@ class AnalizadorLexico:
                     columna,
                 )
             return self._crear_token(lexema, "HORA", linea, columna)
-
         if not self._termino() and not self._es_separador(self._actual()):
             while not self._termino() and not self._es_separador(self._actual()):
                 self._avanzar()
@@ -234,7 +244,6 @@ class AnalizadorLexico:
                 columna,
             )
             return self.siguiente_token()
-
         lexema = self._obtener_lexema(inicio)
         if self.esperando_dia:
             self._registrar_error(
@@ -251,6 +260,11 @@ class AnalizadorLexico:
         inicio = self.posicion
         self._avanzar()
         cerrada = False
+
+
+
+
+
 
         while not self._termino() and self._actual() != '\n':
             if self._actual() == '"':
