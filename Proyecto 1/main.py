@@ -3,8 +3,7 @@ import tkinter as tk
 from pathlib import Path
 from horario_script import AnalizadorLexico
 from horario_script.gui import VentanaHorarioScript
-
-
+from horario_script.detector_choques import extraer_clases, detectar_choques
 
 
 
@@ -14,8 +13,6 @@ from horario_script.gui import VentanaHorarioScript
 def leer_archivo(ruta):
 	with open(ruta, "r", encoding="utf-8") as archivo:
 		return archivo.read()
-
-
 def imprimir_resultados(tokens, errores):
 	print("\nTOKENS")
 	print("No.  Lexema                             Tipo                 Linea Col")
@@ -30,8 +27,15 @@ def imprimir_resultados(tokens, errores):
 			print(error)
 	print(f"\nTotal de tokens: {len(tokens)}")
 	print(f"Total de errores: {len(errores)}")
-
-
+def imprimir_choques(tokens):
+	clases = extraer_clases(tokens)
+	choques = detectar_choques(clases)
+	print(f"\nCHOQUES DE HORARIO: {len(choques)}")
+	for choque in choques:
+		print(
+			f"  {choque['clase1']['curso']} vs {choque['clase2']['curso']} "
+			f"- mismo {choque['motivo']}, {choque['clase1']['dia']}"
+		)
 def analizar_desde_consola(argumentos):
 	carpeta_actual = Path(__file__).parent
 	ruta = Path(argumentos[0]) if len(argumentos) > 0 else carpeta_actual / "datos" / "horario_valido.hor"
@@ -48,24 +52,17 @@ def analizar_desde_consola(argumentos):
 	analizador = AnalizadorLexico(texto)
 	tokens = analizador.analizar()
 	imprimir_resultados(tokens, analizador.errores)
+	imprimir_choques(tokens)
 	return 0
 def iniciar_gui():
 	raiz = tk.Tk()
 	VentanaHorarioScript(raiz)
 	raiz.mainloop()
 	return 0
-
-
-
-
-
-
 def main():
 	argumentos = sys.argv[1:]
 	if len(argumentos) > 0 and argumentos[0] == "--consola":
 		return analizar_desde_consola(argumentos[1:])
 	return iniciar_gui()
-
-
 if __name__ == "__main__":
 	raise SystemExit(main())
