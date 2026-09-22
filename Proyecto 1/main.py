@@ -4,7 +4,7 @@ from pathlib import Path
 from horario_script import AnalizadorLexico
 from horario_script.gui import VentanaHorarioScript
 from horario_script.detector_choques import extraer_clases, detectar_choques
-
+from horario_script.generador_reportes import GeneradorReportes
 
 
 
@@ -59,6 +59,11 @@ def iniciar_gui():
 	VentanaHorarioScript(raiz)
 	raiz.mainloop()
 	return 0
+def generar_reportes(tokens):
+    generador = GeneradorReportes(tokens)
+    generador.generar_reporte_horario("reporte_horario.html")
+    generador.generar_reporte_carga("reporte_carga.html")
+    print("\nReportes generados: reporte_horario.html, reporte_carga.html")
 def main():
 	argumentos = sys.argv[1:]
 	if len(argumentos) > 0 and argumentos[0] == "--consola":

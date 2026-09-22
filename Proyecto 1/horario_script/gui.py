@@ -5,7 +5,8 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 from pathlib import Path
 from .analizador_lexico import AnalizadorLexico
-
+import webbrowser
+from .generador_reportes import GeneradorReportes
 class VentanaHorarioScript:
 
     def __init__(self, raiz):
@@ -19,7 +20,8 @@ class VentanaHorarioScript:
         self._crear_panel_tokens()
         self._crear_panel_errores()
         self._crear_panel_reportes()
-
+        self.ruta_archivo = None
+        self.rutas_reportes = {}
 
     def _crear_panel_carga(self):
         panel = tk.Frame(self.raiz)
@@ -102,10 +104,14 @@ class VentanaHorarioScript:
 
         tk.Label(panel, text="Reportes:", font=("Arial", 10, "bold")).pack(side="left", padx=(0, 8))
 
-        self.boton_reporte1 = tk.Button(panel, text="Reporte 1: Horario semanal", state="disabled")
+        self.boton_reporte1 = tk.Button(
+        panel, text="Reporte 1: Horario semanal", state="disabled",
+        command=lambda: self._abrir_reporte("horario"),)
         self.boton_reporte1.pack(side="left", padx=4)
 
-        self.boton_reporte2 = tk.Button(panel, text="Reporte 2: Carga catedraticos", state="disabled")
+        self.boton_reporte2 = tk.Button(
+    panel, text="Reporte 2: Carga catedraticos", state="disabled",
+    command=lambda: self._abrir_reporte("carga"),)
         self.boton_reporte2.pack(side="left", padx=4)
 
         self.boton_reporte3 = tk.Button(panel, text="Reporte 3: Estadistico general", state="disabled")
@@ -138,6 +144,30 @@ class VentanaHorarioScript:
         errores = analizador.errores
         self._poblar_tokens(tokens)
         self._poblar_errores(errores)
+        self._generar_reportes(tokens)
+
+    def _generar_reportes(self, tokens):
+        carpeta_salida = Path(self.ruta_archivo).parent / "reportes"
+        carpeta_salida.mkdir(exist_ok=True)
+
+        generador = GeneradorReportes(tokens)
+
+        ruta_horario = carpeta_salida / "reporte_horario.html"
+        ruta_carga = carpeta_salida / "reporte_carga.html"
+        generador.generar_reporte_horario(ruta_horario)
+        generador.generar_reporte_carga(ruta_carga)
+
+        self.rutas_reportes["horario"] = ruta_horario
+        self.rutas_reportes["carga"] = ruta_carga
+
+        self.boton_reporte1.config(state="normal")
+        self.boton_reporte2.config(state="normal")
+
+    def _abrir_reporte(self, clave):
+        ruta = self.rutas_reportes.get(clave)
+        if ruta is None:
+            return
+        webbrowser.open(f"file://{Path(ruta).resolve()}")
     def _poblar_tokens(self, tokens):
         self.tabla_tokens.delete(*self.tabla_tokens.get_children())
         for token in tokens:

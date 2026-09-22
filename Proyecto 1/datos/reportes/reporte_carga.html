@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Carga de Catedráticos</title>
+<style>
+    body { font-family: Arial, sans-serif; margin: 20px; color: #222; }
+    h1 { font-size: 20px; margin-bottom: 16px; color: #1f1f1f; }
+    table { width: 100%; border-collapse: collapse; background: #fff; }
+    th, td { border: 1px solid #d9d9d9; padding: 8px 10px; text-align: left; }
+    th { background: #f0f0f0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+    tr:nth-child(even) td { background: #fafafa; }
+    tr.baja td { background: #edf6ff; }
+    tr.normal td { background: #f1f8f1; }
+    tr.alta td { background: #fff7eb; }
+    tr.saturada td { background: #fff0ef; }
+</style>
+</head>
+<body>
+<h1>Reporte 2 — Carga de Catedráticos</h1>
+<table>
+<tr><th>Catedrático</th><th>Código</th><th>Categoría</th><th>Horas/semana</th><th>Cursos</th><th>Secciones</th><th>Nivel</th></tr>
+
+            <tr class="baja">
+                <td>Otto Rodriguez</td>
+                <td>DOC-001</td>
+                <td>TITULAR</td>
+                <td>1.7</td>
+                <td>1</td>
+                <td>1</td>
+                <td>BAJA</td>
+            </tr>
+            <tr class="baja">
+                <td>Vivian Campos</td>
+                <td>DOC-002</td>
+                <td>INTERINO</td>
+                <td>1.7</td>
+                <td>1</td>
+                <td>1</td>
+                <td>BAJA</td>
+            </tr>
+</table>
+</body>
+</html>
