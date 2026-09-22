@@ -1,32 +1,44 @@
-import tkinter as tk
-from tkinter import ttk
 
+
+
+import tkinter as tk
+from tkinter import ttk, filedialog, messagebox
+from pathlib import Path
+from .analizador_lexico import AnalizadorLexico
 
 class VentanaHorarioScript:
-
 
     def __init__(self, raiz):
         self.raiz = raiz
         self.raiz.title("HorarioScript - Analizador Lexico")
         self.raiz.geometry("900x650")
 
+        self.ruta_archivo = None 
+
         self._crear_panel_carga()
         self._crear_panel_tokens()
         self._crear_panel_errores()
         self._crear_panel_reportes()
+
+
     def _crear_panel_carga(self):
         panel = tk.Frame(self.raiz)
         panel.pack(fill="x", padx=10, pady=8)
 
-        self.boton_cargar = tk.Button(panel, text="Cargar archivo .hor")
+        self.boton_cargar = tk.Button(
+            panel, text="Cargar archivo .hor", command=self.cargar_archivo
+        )
         self.boton_cargar.pack(side="left")
 
-        self.boton_analizar = tk.Button(panel, text="Analizar", state="disabled")
+        self.boton_analizar = tk.Button(
+            panel, text="Analizar", state="disabled", command=self.analizar_archivo
+        )
         self.boton_analizar.pack(side="left", padx=8)
 
-        # Este label va a mostrar el nombre del archivo cargado (Dia 12)
         self.label_archivo = tk.Label(panel, text="Ningun archivo cargado", fg="gray")
         self.label_archivo.pack(side="left", padx=8)
+
+
     def _crear_panel_tokens(self):
         panel = tk.Frame(self.raiz)
         panel.pack(fill="both", expand=True, padx=10, pady=5)
@@ -53,6 +65,8 @@ class VentanaHorarioScript:
 
         self.tabla_tokens.pack(side="left", fill="both", expand=True)
         scroll_tokens.pack(side="left", fill="y")
+
+
     def _crear_panel_errores(self):
         panel = tk.Frame(self.raiz)
         panel.pack(fill="both", expand=True, padx=10, pady=5)
@@ -81,6 +95,7 @@ class VentanaHorarioScript:
 
         self.tabla_errores.pack(side="left", fill="both", expand=True)
         scroll_errores.pack(side="left", fill="y")
+
     def _crear_panel_reportes(self):
         panel = tk.Frame(self.raiz)
         panel.pack(fill="x", padx=10, pady=8)
@@ -95,9 +110,50 @@ class VentanaHorarioScript:
 
         self.boton_reporte3 = tk.Button(panel, text="Reporte 3: Estadistico general", state="disabled")
         self.boton_reporte3.pack(side="left", padx=4)
+    
+    def cargar_archivo(self):
+        ruta = filedialog.askopenfilename(
+            title="Selecciona un archivo HorarioScript",
+            filetypes=[("HorarioScript", "*.hor"), ("Todos los archivos", "*.*")],
+        )
 
+        if not ruta:
+            return 
 
+        self.ruta_archivo = ruta
+        self.label_archivo.config(text=Path(ruta).name, fg="black")
+        self.boton_analizar.config(state="normal")
+
+    def analizar_archivo(self):
+        if self.ruta_archivo is None:
+            return
+        try:
+            with open(self.ruta_archivo, "r", encoding="utf-8") as archivo:
+                texto = archivo.read()
+        except OSError as error:
+            messagebox.showerror("Error al leer archivo", str(error))
+            return
+        analizador = AnalizadorLexico(texto)
+        tokens = analizador.analizar()
+        errores = analizador.errores
+        self._poblar_tokens(tokens)
+        self._poblar_errores(errores)
+    def _poblar_tokens(self, tokens):
+        self.tabla_tokens.delete(*self.tabla_tokens.get_children())
+        for token in tokens:
+            self.tabla_tokens.insert(
+                "", "end",
+                values=(token.numero, token.lexema, token.tipo, token.linea, token.columna),
+            )
+    def _poblar_errores(self, errores):
+        self.tabla_errores.delete(*self.tabla_errores.get_children())
+        for error in errores:
+            self.tabla_errores.insert(
+                "", "end",
+                values=(error.numero, error.lexema, error.tipo, error.linea, error.columna, error.descripcion),
+            )
 if __name__ == "__main__":
+
     raiz = tk.Tk()
     app = VentanaHorarioScript(raiz)
     raiz.mainloop()
