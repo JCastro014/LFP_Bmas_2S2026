@@ -1,0 +1,6 @@
+HORARIO {
+    CLASES {
+        clase: "LFP-0796" con "DOC-001" en "A-101" [dia: LUNES, inicio: 07:00, fin: 08:40, seccion: "N"],
+        clase: "BD2-0812" con "DOC-002" en "A-101" [dia: LUNES, inicio: 07:00, fin: 08:40, seccion: "A"],
+    };
+};

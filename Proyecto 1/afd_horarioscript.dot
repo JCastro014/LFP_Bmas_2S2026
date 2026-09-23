@@ -4,12 +4,12 @@ digraph AFD_HorarioScript {
     node [shape=circle, fontname="Arial", fontsize=10];
     INICIO [shape=doublecircle, style=filled, fillcolor="#dceefb"];
     ACEPTA_COMENTARIO [shape=doublecircle, style=filled, fillcolor="#e2f7e1"];
-    ACEPTA_ENTERO [shape=doublecircle, style=filled, fillcolor="#e2f7e1"];
-    ACEPTA_PALABRA_RESERVADA [shape=doublecircle, style=filled, fillcolor="#e2f7e1"];
     ACEPTA_SIMBOLO [shape=doublecircle, style=filled, fillcolor="#e2f7e1"];
+    ACEPTA_PALABRA_RESERVADA [shape=doublecircle, style=filled, fillcolor="#e2f7e1"];
+    ACEPTA_CODIGO [shape=doublecircle, style=filled, fillcolor="#e2f7e1"];
+    ACEPTA_ENTERO [shape=doublecircle, style=filled, fillcolor="#e2f7e1"];
     ACEPTA_CADENA [shape=doublecircle, style=filled, fillcolor="#e2f7e1"];
     ACEPTA_HORA [shape=doublecircle, style=filled, fillcolor="#e2f7e1"];
-    ACEPTA_CODIGO [shape=doublecircle, style=filled, fillcolor="#e2f7e1"];
     ERROR_LEXICO [shape=box, style=filled, fillcolor="#fbdada"];
     INICIO -> LEYENDO_LETRA [label="letra"];
     LEYENDO_LETRA -> LEYENDO_LETRA [label="letra"];
