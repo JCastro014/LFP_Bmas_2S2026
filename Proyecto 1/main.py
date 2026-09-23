@@ -5,6 +5,7 @@ from horario_script import AnalizadorLexico
 from horario_script.gui import VentanaHorarioScript
 from horario_script.detector_choques import extraer_clases, detectar_choques
 from horario_script.generador_reportes import GeneradorReportes
+from horario_script.exportador_dot import exportar_dot
 
 
 
@@ -53,6 +54,9 @@ def analizar_desde_consola(argumentos):
 	tokens = analizador.analizar()
 	imprimir_resultados(tokens, analizador.errores)
 	imprimir_choques(tokens)
+	generar_reportes(tokens)
+	exportar_dot(carpeta_actual / "afd_horarioscript.dot")
+	print("Diagrama DOT generado: afd_horarioscript.dot")
 	return 0
 def iniciar_gui():
 	raiz = tk.Tk()
@@ -63,7 +67,14 @@ def generar_reportes(tokens):
     generador = GeneradorReportes(tokens)
     generador.generar_reporte_horario("reporte_horario.html")
     generador.generar_reporte_carga("reporte_carga.html")
-    print("\nReportes generados: reporte_horario.html, reporte_carga.html")
+    generador.generar_reporte_estadistico("reporte_estadistico.html")
+    print("\nReportes generados: reporte_horario.html, reporte_carga.html, reporte_estadistico.html")
+
+
+
+
+
+
 def main():
 	argumentos = sys.argv[1:]
 	if len(argumentos) > 0 and argumentos[0] == "--consola":

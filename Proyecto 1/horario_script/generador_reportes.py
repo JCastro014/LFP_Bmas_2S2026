@@ -59,14 +59,14 @@ class GeneradorReportes:
 <meta charset="UTF-8">
 <title>Horario Semanal</title>
 <style>
-    body {{ font-family: Arial, sans-serif; margin: 20px; color: #222; }}
-    h1 {{ font-size: 20px; margin-bottom: 16px; color: #1f1f1f; }}
-    table {{ width: 100%; border-collapse: collapse; background: #fff; }}
-    th, td {{ border: 1px solid #d9d9d9; padding: 8px 10px; text-align: left; vertical-align: top; }}
-    th {{ background: #efefef; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }}
+    body {{ font-family: Arial, sans-serif; margin: 18px; color: #111; }}
+    h1 {{ font-size: 18px; margin-bottom: 12px; color: #111; }}
+    table {{ width: 100%; border-collapse: collapse; background: white; }}
+    th, td {{ border: 1px solid #bdbdbd; padding: 6px 8px; text-align: left; vertical-align: top; }}
+    th {{ background: #f3f3f3; font-size: 11px; text-transform: uppercase; }}
     tr:nth-child(even) td {{ background: #fafafa; }}
-    tr.confirmado td {{ background: #f4f9f4; }}
-    tr.choque td {{ background: #fff2f0; font-weight: bold; }}
+    tr.confirmado td {{ background: #f6f6f6; }}
+    tr.choque td {{ background: #f7efef; font-weight: bold; }}
 </style>
 </head>
 <body>
@@ -81,20 +81,7 @@ class GeneradorReportes:
         Path(ruta_salida).write_text(html, encoding="utf-8")
 
     def generar_reporte_carga(self, ruta_salida):
-        carga_por_catedratico = {}
-        for clase in self.clases:
-            codigo_doc = clase["catedratico"]
-            if codigo_doc is None or clase["inicio"] is None or clase["fin"] is None:
-                continue
-            duracion_horas = (_minutos(clase["fin"]) - _minutos(clase["inicio"])) / 60
-            registro = carga_por_catedratico.setdefault(codigo_doc, {
-                "horas": 0,
-                "cursos": set(),
-                "secciones": set(),
-            })
-            registro["horas"] += duracion_horas
-            registro["cursos"].add(clase["curso"])
-            registro["secciones"].add(clase["seccion"])
+        carga_por_catedratico = self._calcular_carga_catedraticos()
 
         filas = ""
         for codigo_doc, datos in carga_por_catedratico.items():
@@ -120,16 +107,16 @@ class GeneradorReportes:
 <meta charset="UTF-8">
 <title>Carga de Catedráticos</title>
 <style>
-    body {{ font-family: Arial, sans-serif; margin: 20px; color: #222; }}
-    h1 {{ font-size: 20px; margin-bottom: 16px; color: #1f1f1f; }}
-    table {{ width: 100%; border-collapse: collapse; background: #fff; }}
-    th, td {{ border: 1px solid #d9d9d9; padding: 8px 10px; text-align: left; }}
-    th {{ background: #f0f0f0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }}
+    body {{ font-family: Arial, sans-serif; margin: 18px; color: #111; }}
+    h1 {{ font-size: 18px; margin-bottom: 12px; color: #111; }}
+    table {{ width: 100%; border-collapse: collapse; background: white; }}
+    th, td {{ border: 1px solid #bdbdbd; padding: 6px 8px; text-align: left; }}
+    th {{ background: #f3f3f3; font-size: 11px; text-transform: uppercase; }}
     tr:nth-child(even) td {{ background: #fafafa; }}
-    tr.baja td {{ background: #edf6ff; }}
-    tr.normal td {{ background: #f1f8f1; }}
-    tr.alta td {{ background: #fff7eb; }}
-    tr.saturada td {{ background: #fff0ef; }}
+    tr.baja td {{ background: #f3f6fb; }}
+    tr.normal td {{ background: #f4f7f4; }}
+    tr.alta td {{ background: #faf5ee; }}
+    tr.saturada td {{ background: #f9f0f0; }}
 </style>
 </head>
 <body>
@@ -137,6 +124,105 @@ class GeneradorReportes:
 <table>
 <tr><th>Catedrático</th><th>Código</th><th>Categoría</th><th>Horas/semana</th><th>Cursos</th><th>Secciones</th><th>Nivel</th></tr>
 {filas}
+</table>
+</body>
+</html>"""
+
+        Path(ruta_salida).write_text(html, encoding="utf-8")
+
+    CAPACIDAD_SEMANAL_AULA_HORAS = 90  # 15 hrs/dia (06:00-21:00) x 6 dias (Lun-Sab)
+
+    def _calcular_carga_catedraticos(self):
+        carga = {}
+        for clase in self.clases:
+            codigo_doc = clase["catedratico"]
+            if codigo_doc is None or clase["inicio"] is None or clase["fin"] is None:
+                continue
+            duracion_horas = (_minutos(clase["fin"]) - _minutos(clase["inicio"])) / 60
+            registro = carga.setdefault(codigo_doc, {
+                "horas": 0,
+                "cursos": set(),
+                "secciones": set(),
+            })
+            registro["horas"] += duracion_horas
+            registro["cursos"].add(clase["curso"])
+            registro["secciones"].add(clase["seccion"])
+        return carga
+
+    def _calcular_ocupacion_aulas(self):
+        ocupacion = {}
+        for clase in self.clases:
+            codigo_aula = clase["aula"]
+            if codigo_aula is None or clase["inicio"] is None or clase["fin"] is None:
+                continue
+            duracion_horas = (_minutos(clase["fin"]) - _minutos(clase["inicio"])) / 60
+            registro = ocupacion.setdefault(codigo_aula, {"clases": 0, "horas": 0})
+            registro["clases"] += 1
+            registro["horas"] += duracion_horas
+        return ocupacion
+
+    def generar_reporte_estadistico(self, ruta_salida):
+        carga = self._calcular_carga_catedraticos()
+        ocupacion = self._calcular_ocupacion_aulas()
+
+        total_cursos = len(self.cursos)
+        total_catedraticos = len(self.catedraticos)
+        total_aulas = len(self.aulas)
+        total_clases = len(self.clases)
+        total_choques = len(self.choques)
+
+        catedratico_mayor_carga = max(carga.items(), key=lambda item: item[1]["horas"], default=None)
+        aula_mayor_ocupacion = max(ocupacion.items(), key=lambda item: item[1]["horas"], default=None)
+
+        promedio_horas = (
+            sum(registro["horas"] for registro in carga.values()) / len(carga)
+            if carga else 0
+        )
+
+        nombre_catedratico_top = (
+            self._nombre_catedratico(catedratico_mayor_carga[0]) if catedratico_mayor_carga else "N/A"
+        )
+        nombre_aula_top = aula_mayor_ocupacion[0] if aula_mayor_ocupacion else "N/A"
+
+        filas_aulas = ""
+        for codigo_aula, datos in ocupacion.items():
+            porcentaje = (datos["horas"] / self.CAPACIDAD_SEMANAL_AULA_HORAS) * 100
+            filas_aulas += f"""
+            <tr>
+                <td>{codigo_aula}</td>
+                <td>{datos['clases']}</td>
+                <td>{datos['horas']:.1f}</td>
+                <td>{porcentaje:.1f}%</td>
+            </tr>"""
+
+        html = f"""<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Estadistico General</title>
+<style>
+    body {{ font-family: Arial, sans-serif; margin: 20px; color: #111; }}
+    h1 {{ font-size: 20px; margin-bottom: 16px; }}
+    table {{ border-collapse: collapse; width: 100%; }}
+    th, td {{ border: 1px solid #bdbdbd; padding: 7px 8px; text-align: left; }}
+    th {{ background: #f1f1f1; }}
+</style>
+</head>
+<body>
+<h1>Reporte 3 — Estadistico General</h1>
+<p><strong>Cursos:</strong> {total_cursos}</p>
+<p><strong>Catedraticos:</strong> {total_catedraticos}</p>
+<p><strong>Aulas:</strong> {total_aulas}</p>
+<p><strong>Clases:</strong> {total_clases}</p>
+<p><strong>Choques:</strong> {total_choques}</p>
+<p><strong>Promedio de horas por catedratico:</strong> {promedio_horas:.1f}</p>
+<p><strong>Catedratico con mayor carga:</strong> {nombre_catedratico_top}</p>
+<p><strong>Aula con mayor ocupacion:</strong> {nombre_aula_top}</p>
+
+<h2>Ocupacion por aula</h2>
+<table>
+<tr><th>Aula</th><th>Clases asignadas</th><th>Horas/semana</th><th>% Ocupacion</th></tr>
+{filas_aulas}
 </table>
 </body>
 </html>"""

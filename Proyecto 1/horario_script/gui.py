@@ -7,6 +7,7 @@ from pathlib import Path
 from .analizador_lexico import AnalizadorLexico
 import webbrowser
 from .generador_reportes import GeneradorReportes
+from .exportador_dot import exportar_dot
 class VentanaHorarioScript:
 
     def __init__(self, raiz):
@@ -114,9 +115,18 @@ class VentanaHorarioScript:
     command=lambda: self._abrir_reporte("carga"),)
         self.boton_reporte2.pack(side="left", padx=4)
 
-        self.boton_reporte3 = tk.Button(panel, text="Reporte 3: Estadistico general", state="disabled")
+        self.boton_reporte3 = tk.Button(
+            panel, text="Reporte 3: Estadistico general", state="disabled",
+            command=lambda: self._abrir_reporte("estadistico"),
+        )
         self.boton_reporte3.pack(side="left", padx=4)
-    
+
+        self.boton_dot = tk.Button(
+            panel, text="Exportar diagrama AFD (.dot)", state="disabled",
+            command=self._exportar_dot,
+        )
+        self.boton_dot.pack(side="left", padx=4)
+
     def cargar_archivo(self):
         ruta = filedialog.askopenfilename(
             title="Selecciona un archivo HorarioScript",
@@ -156,18 +166,34 @@ class VentanaHorarioScript:
         ruta_carga = carpeta_salida / "reporte_carga.html"
         generador.generar_reporte_horario(ruta_horario)
         generador.generar_reporte_carga(ruta_carga)
+        ruta_estadistico = carpeta_salida / "reporte_estadistico.html"
+        generador.generar_reporte_estadistico(ruta_estadistico)
+        self.rutas_reportes["estadistico"] = ruta_estadistico
+        self.boton_reporte3.config(state="normal")
 
         self.rutas_reportes["horario"] = ruta_horario
         self.rutas_reportes["carga"] = ruta_carga
 
         self.boton_reporte1.config(state="normal")
         self.boton_reporte2.config(state="normal")
+        self.boton_reporte3.config(state="normal")
+        self.boton_dot.config(state="normal")
 
     def _abrir_reporte(self, clave):
         ruta = self.rutas_reportes.get(clave)
         if ruta is None:
             return
         webbrowser.open(f"file://{Path(ruta).resolve()}")
+
+    def _exportar_dot(self):
+        carpeta_salida = Path(self.ruta_archivo).parent / "reportes"
+        carpeta_salida.mkdir(exist_ok=True)
+        ruta_dot = carpeta_salida / "afd_horarioscript.dot"
+        exportar_dot(ruta_dot)
+        messagebox.showinfo(
+            "Diagrama AFD exportado",
+            f"Archivo generado en:\n{ruta_dot}",
+        )
     def _poblar_tokens(self, tokens):
         self.tabla_tokens.delete(*self.tabla_tokens.get_children())
         for token in tokens:
