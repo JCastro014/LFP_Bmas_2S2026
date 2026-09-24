@@ -130,7 +130,7 @@ class GeneradorReportes:
 
         Path(ruta_salida).write_text(html, encoding="utf-8")
 
-    CAPACIDAD_SEMANAL_AULA_HORAS = 90  # 15 hrs/dia (06:00-21:00) x 6 dias (Lun-Sab)
+    CAPACIDAD_SEMANAL_AULA_HORAS = 90 
 
     def _calcular_carga_catedraticos(self):
         carga = {}
