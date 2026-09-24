@@ -1,109 +1,25 @@
-# Torneo de Sudoku — LFP Numerix
 
-Sistema de consola en Python 3 para validar intentos de resolución de Sudoku, calcular métricas de desempeño de un torneo y generar reportes analíticos en HTML.
+## Cómo usar la aplicación
 
-Proyecto de la práctica **"Torneo de Sudoku: Validación y Análisis de Partidas"** — Lenguajes Formales y de Programación, Universidad de San Carlos de Guatemala.
+1. Ejecutar `python main.py`.
+2. Presionar **Cargar archivo .hor** y seleccionar un archivo (ver ejemplos en `datos/`).
+3. Presionar **Analizar** para ejecutar el motor léxico.
+4. Revisar la tabla de tokens reconocidos y, si aplica, la tabla de errores léxicos.
+5. Abrir cualquiera de los 3 reportes o exportar el diagrama del AFD desde los botones habilitados tras el análisis.
 
-## Descripción
+Instrucciones detalladas, con capturas de pantalla, en `Documentacion/Manual_de_Usuario_HorarioScript.pdf`.
 
-El sistema lee tres archivos de texto delimitados por comas (tableros, jugadores e intentos), representa cada uno como objetos mediante Programación Orientada a Objetos, valida cada intento contra las reglas del Sudoku (filas, columnas y cajas de 3x3) usando matrices, calcula métricas de desempeño y genera tres reportes en formato HTML.
+## Tipos de token reconocidos
 
-## Requisitos
+Palabras reservadas de bloque, elemento y relación; `CODIGO`, `CADENA`, `HORA`, `ENTERO`, `DIA`, `CATEGORIA`, `SIMBOLO` y `COMENTARIO_LINEA` — 11 tipos en total. Detalle completo en `Documentacion/Manual_Tecnico_HorarioScript.pdf`.
 
-- Python 3.x
-- No requiere librerías externas (solo módulos nativos de Python)
+## Casos de prueba
 
-## Estructura del proyecto
+10 casos documentados en `Documentacion/Casos_de_Prueba_HorarioScript.pdf`, cubriendo el archivo válido, los 5 tipos de error léxico, choques de horario (por catedrático y por aula), y 2 casos borde. Los archivos `.hor` de cada caso están en `datos/`.
 
-```
-Practica 1/
-├── main.py
-├── datos/
-│   ├── sudokus.lfp
-│   ├── jugadores.lfp
-│   └── intentos.lfp
-├── Modelos/
-│   ├── tablero.py
-│   ├── jugador.py
-│   ├── intento.py
-│   └── torneo.py
-├── io_archivos/
-│   ├── lector.py
-│   └── generador_de_reportes.py
-├── Logica/
-│   ├── validador.py
-│   └── metricas.py
-├── Interfaz/
-│   └── menu.py
-└── reportes/
-    ├── reporte_sudokus.html
-    ├── reporte_jugadores.html
-    └── reporte_top10.html
-```
+## Restricciones técnicas cumplidas
 
-## Instrucciones de ejecución
-
-1. Clonar el repositorio.
-2. Abrir una terminal y ubicarse dentro de la carpeta `Practica 1` (la que contiene `main.py`):
-   ```
-   cd "Practica 1"
-   ```
-3. Ejecutar el programa:
-   ```
-   python main.py
-   ```
-
-**Importante:** el programa debe ejecutarse desde dentro de `Practica 1`, porque las rutas de los archivos de datos son relativas a esa ubicación.
-
-## Ejemplo de uso
-
-Al ejecutar `main.py` se muestra el menú principal:
-
-```
-==========================================
- TORNEO DE SUDOKU - NUMERIX
-==========================================
-1. Cargar archivo de sudokus
-2. Cargar archivo de jugadores
-3. Cargar archivo de intentos
-4. Validar y calificar intentos
-5. Generar Reporte: Resumen por Sudoku
-6. Generar Reporte: Rendimiento por Jugador
-7. Generar Reporte: Top 10 Mejores Tiempos
-8. Salir
-Seleccione una opcion:
-```
-
-Orden recomendado de uso:
-
-1. Opción `1` — cargar `datos/sudokus.lfp`
-2. Opción `2` — cargar `datos/jugadores.lfp`
-3. Opción `3` — cargar `datos/intentos.lfp` (requiere que sudokus y jugadores ya estén cargados)
-4. Opción `4` — validar y calificar los intentos cargados
-5. Opciones `5`, `6`, `7` — generar los reportes HTML correspondientes en la carpeta `reportes/`
-6. Opción `8` — salir
-
-## Formato de los archivos de entrada
-
-**`sudokus.lfp`** → `id_sudoku,dificultad,tablero` (cadena de 81 dígitos)
-**`jugadores.lfp`** → `carnet,nombre,apellido,nivel`
-**`intentos.lfp`** → `carnet,id_sudoku,solucion` (81 dígitos)`,tiempo_segundos,fecha`
-
-## Reportes generados
-
-Los tres reportes se guardan como archivos `.html` dentro de `reportes/` y se abren con cualquier navegador:
-
-- `reporte_sudokus.html` — resumen por sudoku (intentos recibidos, tiempo promedio, tasa de éxito)
-- `reporte_jugadores.html` — rendimiento por jugador (validez promedio, tiempo promedio, tableros resueltos perfectamente)
-- `reporte_top10.html` — los 10 mejores tiempos entre los intentos resueltos correctamente
-
-## Documentación adicional
-
-- `Manual_Tecnico.docx` — estructura del programa, clases y lógica de validación matricial
-- `Manual_Usuario.docx` — instrucciones de uso paso a paso
-- Diagrama de flujo del proceso general
-- Informe de desarrollo
-
-## Autor
-
-[Tu nombre] — Carnet [tu carnet] — Sección [tu sección]
+- No se usa el módulo `re`.
+- No se usan funciones de alto nivel de cadenas (`split`, `find`, etc.) para la tokenización principal; solo indexación carácter a carácter.
+- No se usan generadores automáticos de analizadores léxicos (`ply` o similares).
+- El AFD está implementado a mano, con estados y transiciones explícitas.
