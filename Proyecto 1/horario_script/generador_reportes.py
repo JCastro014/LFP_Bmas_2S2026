@@ -1,7 +1,7 @@
 from pathlib import Path
 from .estructura import extraer_cursos, extraer_catedraticos, extraer_aulas
 from .detector_choques import extraer_clases, detectar_choques
-ORDEN_DIAS = ["LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO"]
+ORDEN_DIAS = ["LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO", "DOMINGO"]
 def _minutos(hora_texto):
     horas = int(hora_texto[0:2])
     minutos = int(hora_texto[3:5])

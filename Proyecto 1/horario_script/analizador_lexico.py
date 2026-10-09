@@ -43,6 +43,7 @@ class AnalizadorLexico:
         "JUEVES",
         "VIERNES",
         "SABADO",
+        "DOMINGO",
     }
 
     CATEGORIAS = {
