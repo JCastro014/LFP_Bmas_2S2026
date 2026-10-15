@@ -11,10 +11,17 @@ class AnalizadorLexico:
         self.numero_token = 1
         self.pendientes = []
         self.token_eof = None
+        self.modo_literal = False
+        self.linea_apertura_bloque = 0
+        self.columna_apertura_bloque = 0
+        self.linea_inicio_literal = 0
+        self.columna_inicio_literal = 1
 
     def siguiente_token(self):
         if len(self.pendientes) == 0:
-            if self._termino():
+            if self.modo_literal:
+                self._leer_bloque_literal()
+            elif self._termino():
                 if self.token_eof is None:
                     self.token_eof = self._crear_token(
                         "",
@@ -23,7 +30,8 @@ class AnalizadorLexico:
                         self.columna,
                     )
                 return self.token_eof
-            self._leer_linea()
+            else:
+                self._leer_linea()
 
         return self.pendientes.pop(0)
 
@@ -61,6 +69,10 @@ class AnalizadorLexico:
             )
             return
 
+        if espacios_iniciales == 0 and self._es_cerca_codigo():
+            self._leer_apertura_bloque()
+            return
+
         if espacios_iniciales == 0 and self._es_regla_horizontal():
             self._leer_regla_horizontal()
             return
@@ -79,6 +91,7 @@ class AnalizadorLexico:
                 )
                 self._leer_toda_linea_como_texto()
                 return
+
             if (
                 cantidad_numerales >= 1
                 and cantidad_numerales <= 6
@@ -86,6 +99,10 @@ class AnalizadorLexico:
             ):
                 self._leer_encabezado(cantidad_numerales)
                 return
+
+        if caracter == ">":
+            self._leer_cita(espacios_iniciales)
+            return
 
         if (
             caracter in "-*+"
@@ -156,6 +173,170 @@ class AnalizadorLexico:
             self._leer_texto()
         else:
             self._agregar_fin_linea()
+
+    def _leer_cita(self, espacios_iniciales):
+        self._consumir_espacios(espacios_iniciales)
+        cantidad_citas = 0
+        fin_citas = False
+
+        while not self._termino() and self._actual() == ">" and not fin_citas:
+            linea = self.linea
+            columna = self.columna
+            self._avanzar()
+            self.pendientes.append(
+                self._crear_token(">", "CITA", linea, columna)
+            )
+            cantidad_citas += 1
+
+            if self._termino() or self._es_fin_linea():
+                fin_citas = True
+            elif self._actual() == ">":
+                continue
+            elif self._actual() == " ":
+                self._avanzar()
+                if not self._termino() and self._actual() == ">":
+                    continue
+                fin_citas = True
+            else:
+                self.gestor_errores.agregar(
+                    ">",
+                    "CITA_MAL_FORMADA",
+                    "Cita mal formada en línea "
+                    + str(linea)
+                    + ", columna "
+                    + str(columna),
+                    linea,
+                    columna,
+                    "Sintáctico",
+                )
+                fin_citas = True
+
+        if self._termino() or self._es_fin_linea():
+            self._agregar_fin_linea()
+        else:
+            self._leer_texto()
+
+    def _es_cerca_codigo(self):
+        return (
+            self._actual() == "`"
+            and self._ver(1) == "`"
+            and self._ver(2) == "`"
+        )
+
+    def _leer_apertura_bloque(self):
+        linea = self.linea
+        columna = self.columna
+        inicio = self.posicion
+
+        self._avanzar()
+        self._avanzar()
+        self._avanzar()
+        lexema = self._obtener_lexema(inicio)
+        self.pendientes.append(
+            self._crear_token(lexema, "CERCA_CODIGO", linea, columna)
+        )
+
+        if not self._termino() and not self._es_fin_linea():
+            linea_lenguaje = self.linea
+            columna_lenguaje = self.columna
+            inicio_lenguaje = self.posicion
+            while not self._termino() and not self._es_fin_linea():
+                self._avanzar()
+            lenguaje = self._obtener_lexema(inicio_lenguaje)
+            self.pendientes.append(
+                self._crear_token(
+                    lenguaje,
+                    "LENGUAJE",
+                    linea_lenguaje,
+                    columna_lenguaje,
+                )
+            )
+
+        self.linea_apertura_bloque = linea
+        self.columna_apertura_bloque = columna
+        self._agregar_fin_linea()
+        self.linea_inicio_literal = self.linea
+        self.columna_inicio_literal = self.columna
+        self.modo_literal = True
+
+    def _leer_bloque_literal(self):
+        contenido = ""
+        hay_linea_contenido = False
+        linea_cierre = self.linea
+        columna_cierre = self.columna
+
+        while not self._termino() and not self._es_cerca_codigo():
+            linea_actual = self.linea
+            columna_actual = self.columna
+            inicio = self.posicion
+
+            while not self._termino() and not self._es_fin_linea():
+                self._avanzar()
+
+            texto_linea = self._obtener_lexema(inicio)
+            if hay_linea_contenido and len(contenido) > 0:
+                contenido = contenido + "\n"
+            else:
+                self.linea_inicio_literal = linea_actual
+                self.columna_inicio_literal = columna_actual
+            contenido = contenido + texto_linea
+            hay_linea_contenido = True
+
+            if not self._termino():
+                self._consumir_fin_linea()
+
+        if hay_linea_contenido:
+            self.pendientes.append(
+                self._crear_token(
+                    contenido,
+                    "TEXTO_LITERAL",
+                    self.linea_inicio_literal,
+                    self.columna_inicio_literal,
+                )
+            )
+
+        if self._termino():
+            self.gestor_errores.agregar(
+                "```",
+                "BLOQUE_CODIGO_SIN_CERRAR",
+                "Bloque de código sin cerrar iniciado en línea "
+                + str(self.linea_apertura_bloque),
+                self.linea_apertura_bloque,
+                self.columna_apertura_bloque,
+                "Léxico",
+            )
+            self.pendientes.append(
+                self._crear_token(
+                    "",
+                    "CERCA_CODIGO",
+                    self.linea,
+                    self.columna,
+                )
+            )
+            self.modo_literal = False
+            return
+
+        linea_cierre = self.linea
+        columna_cierre = self.columna
+        inicio_cierre = self.posicion
+        self._avanzar()
+        self._avanzar()
+        self._avanzar()
+        lexema_cierre = self._obtener_lexema(inicio_cierre)
+        self.pendientes.append(
+            self._crear_token(
+                lexema_cierre,
+                "CERCA_CODIGO",
+                linea_cierre,
+                columna_cierre,
+            )
+        )
+
+        while not self._termino() and not self._es_fin_linea():
+            self._avanzar()
+
+        self._agregar_fin_linea()
+        self.modo_literal = False
 
     def _leer_texto(self):
         negrita_abierta = False
