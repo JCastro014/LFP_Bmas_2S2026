@@ -67,6 +67,18 @@ class AnalizadorLexico:
 
         if espacios_iniciales == 0 and caracter == "#":
             cantidad_numerales = self._cantidad_caracteres("#", 0)
+            if cantidad_numerales > 6:
+                self._registrar_error(
+                    "#" * cantidad_numerales,
+                    "ENCABEZADO_INVALIDO",
+                    "Encabezado inválido en línea "
+                    + str(linea_inicio)
+                    + ": máximo 6 niveles",
+                    linea_inicio,
+                    columna_inicio,
+                )
+                self._leer_toda_linea_como_texto()
+                return
             if (
                 cantidad_numerales >= 1
                 and cantidad_numerales <= 6
@@ -146,18 +158,201 @@ class AnalizadorLexico:
             self._agregar_fin_linea()
 
     def _leer_texto(self):
+        negrita_abierta = False
+        cursiva_abierta = False
+        token_negrita = None
+        token_cursiva = None
+        linea_negrita = 0
+        columna_negrita = 0
+        linea_cursiva = 0
+        columna_cursiva = 0
+        inicio_texto = self.posicion
+        linea_texto = self.linea
+        columna_texto = self.columna
+
+        while not self._termino() and not self._es_fin_linea():
+            if self._actual() == "*" and self._ver(1) == "*":
+                self._agregar_texto_pendiente(
+                    inicio_texto,
+                    linea_texto,
+                    columna_texto,
+                )
+                linea = self.linea
+                columna = self.columna
+                inicio = self.posicion
+                self._avanzar()
+                self._avanzar()
+                lexema = self._obtener_lexema(inicio)
+                token = self._crear_token(lexema, "NEGRITA", linea, columna)
+                self.pendientes.append(token)
+
+                if negrita_abierta:
+                    negrita_abierta = False
+                    token_negrita = None
+                else:
+                    negrita_abierta = True
+                    token_negrita = token
+                    linea_negrita = linea
+                    columna_negrita = columna
+
+                inicio_texto = self.posicion
+                linea_texto = self.linea
+                columna_texto = self.columna
+            elif self._actual() == "*":
+                self._agregar_texto_pendiente(
+                    inicio_texto,
+                    linea_texto,
+                    columna_texto,
+                )
+                linea = self.linea
+                columna = self.columna
+                inicio = self.posicion
+                self._avanzar()
+                lexema = self._obtener_lexema(inicio)
+                token = self._crear_token(lexema, "CURSIVA", linea, columna)
+                self.pendientes.append(token)
+
+                if cursiva_abierta:
+                    cursiva_abierta = False
+                    token_cursiva = None
+                else:
+                    cursiva_abierta = True
+                    token_cursiva = token
+                    linea_cursiva = linea
+                    columna_cursiva = columna
+
+                inicio_texto = self.posicion
+                linea_texto = self.linea
+                columna_texto = self.columna
+            elif (
+                self._actual() == "`"
+                and self._ver(1) == "`"
+                and self._ver(2) == "`"
+            ):
+                self._avanzar()
+                self._avanzar()
+                self._avanzar()
+            elif self._actual() == "`":
+                posicion_cierre = self._buscar_cierre_codigo()
+                if posicion_cierre == -1:
+                    linea = self.linea
+                    columna = self.columna
+                    self._registrar_error(
+                        "`",
+                        "CODIGO_INLINE_SIN_CERRAR",
+                        "Código en línea sin cerrar iniciado en línea "
+                        + str(linea)
+                        + ", columna "
+                        + str(columna),
+                        linea,
+                        columna,
+                    )
+                    self._avanzar()
+                else:
+                    self._agregar_texto_pendiente(
+                        inicio_texto,
+                        linea_texto,
+                        columna_texto,
+                    )
+                    self._leer_codigo_en_linea(posicion_cierre)
+                    inicio_texto = self.posicion
+                    linea_texto = self.linea
+                    columna_texto = self.columna
+            else:
+                self._avanzar()
+
+        self._agregar_texto_pendiente(
+            inicio_texto,
+            linea_texto,
+            columna_texto,
+        )
+
+        if negrita_abierta:
+            self._registrar_error(
+                token_negrita.lexema,
+                "NEGRITA_SIN_CERRAR",
+                "Negrita sin cerrar iniciada en línea "
+                + str(linea_negrita)
+                + ", columna "
+                + str(columna_negrita),
+                linea_negrita,
+                columna_negrita,
+            )
+            token_negrita.tipo = "TEXTO"
+
+        if cursiva_abierta:
+            self._registrar_error(
+                token_cursiva.lexema,
+                "CURSIVA_SIN_CERRAR",
+                "Cursiva sin cerrar iniciada en línea "
+                + str(linea_cursiva)
+                + ", columna "
+                + str(columna_cursiva),
+                linea_cursiva,
+                columna_cursiva,
+            )
+            token_cursiva.tipo = "TEXTO"
+
+        self._agregar_fin_linea()
+
+    def _agregar_texto_pendiente(self, inicio, linea, columna):
+        if inicio < self.posicion:
+            lexema = self._obtener_lexema(inicio)
+            self.pendientes.append(
+                self._crear_token(lexema, "TEXTO", linea, columna)
+            )
+
+    def _buscar_cierre_codigo(self):
+        posicion = self.posicion + 1
+        while posicion < len(self.texto):
+            if self.texto[posicion] == "\n" or self.texto[posicion] == "\r":
+                return -1
+            if self.texto[posicion] == "`":
+                return posicion
+            posicion += 1
+        return -1
+
+    def _leer_codigo_en_linea(self, posicion_cierre):
         linea = self.linea
         columna = self.columna
         inicio = self.posicion
-
-        while not self._termino() and not self._es_fin_linea():
-            self._avanzar()
-
+        self._avanzar()
         lexema = self._obtener_lexema(inicio)
         self.pendientes.append(
-            self._crear_token(lexema, "TEXTO", linea, columna)
+            self._crear_token(lexema, "CODIGO_INLINE", linea, columna)
         )
-        self._agregar_fin_linea()
+
+        linea_literal = self.linea
+        columna_literal = self.columna
+        inicio_literal = self.posicion
+        while self.posicion < posicion_cierre:
+            self._avanzar()
+        lexema_literal = self._obtener_lexema(inicio_literal)
+        self.pendientes.append(
+            self._crear_token(
+                lexema_literal,
+                "TEXTO_LITERAL",
+                linea_literal,
+                columna_literal,
+            )
+        )
+
+        linea_cierre = self.linea
+        columna_cierre = self.columna
+        inicio_cierre = self.posicion
+        self._avanzar()
+        lexema_cierre = self._obtener_lexema(inicio_cierre)
+        self.pendientes.append(
+            self._crear_token(
+                lexema_cierre,
+                "CODIGO_INLINE",
+                linea_cierre,
+                columna_cierre,
+            )
+        )
+
+    def _leer_toda_linea_como_texto(self):
+        self._leer_texto()
 
     def _consumir_espacios(self, cantidad):
         contador = 0
@@ -248,6 +443,16 @@ class AnalizadorLexico:
         token = Token(self.numero_token, lexema, tipo, linea, columna)
         self.numero_token += 1
         return token
+
+    def _registrar_error(self, lexema, tipo, descripcion, linea, columna):
+        self.gestor_errores.agregar(
+            lexema,
+            tipo,
+            descripcion,
+            linea,
+            columna,
+            "Léxico",
+        )
 
     def _es_fin_linea(self):
         return self._actual() == "\n" or self._actual() == "\r"
