@@ -22,6 +22,10 @@ def imprimir_tokens(tokens):
             lexema = "(salto de párrafo)"
         elif token.tipo == "EOF":
             lexema = "(fin de archivo)"
+        elif token.tipo == "INDENT":
+            lexema = "(inicio de indentación)"
+        elif token.tipo == "DEDENT":
+            lexema = "(fin de indentación)"
 
         print(
             f"{token.numero:<4} {lexema:<34} {token.tipo:<20} "

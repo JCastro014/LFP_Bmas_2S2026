@@ -16,12 +16,24 @@ class AnalizadorLexico:
         self.columna_apertura_bloque = 0
         self.linea_inicio_literal = 0
         self.columna_inicio_literal = 1
+        self.niveles_indentacion = [0]
 
     def siguiente_token(self):
         if len(self.pendientes) == 0:
             if self.modo_literal:
                 self._leer_bloque_literal()
             elif self._termino():
+                if len(self.niveles_indentacion) > 1:
+                    self.niveles_indentacion.pop()
+                    self.pendientes.append(
+                        self._crear_token(
+                            "",
+                            "DEDENT",
+                            self.linea,
+                            self.columna,
+                        )
+                    )
+                    return self.pendientes.pop(0)
                 if self.token_eof is None:
                     self.token_eof = self._crear_token(
                         "",
@@ -55,6 +67,14 @@ class AnalizadorLexico:
 
         posicion_contenido = posicion_inicio + espacios_iniciales
         caracter = self._caracter_en(posicion_contenido)
+
+        es_vineta = (
+            caracter in "-*+"
+            and self._caracter_en(posicion_contenido + 1) == " "
+        )
+
+        if not es_vineta and len(self.niveles_indentacion) > 1:
+            self._agregar_dedents(linea_inicio, columna_inicio)
 
         if caracter == "" or caracter == "\n" or caracter == "\r":
             self._consumir_espacios(espacios_iniciales)
@@ -104,10 +124,7 @@ class AnalizadorLexico:
             self._leer_cita(espacios_iniciales)
             return
 
-        if (
-            caracter in "-*+"
-            and self._caracter_en(posicion_contenido + 1) == " "
-        ):
+        if es_vineta:
             self._leer_vineta(espacios_iniciales)
             return
 
@@ -159,6 +176,51 @@ class AnalizadorLexico:
             self._agregar_fin_linea()
 
     def _leer_vineta(self, espacios_iniciales):
+        nivel = espacios_iniciales // 2
+        nivel_actual = self.niveles_indentacion[
+            len(self.niveles_indentacion) - 1
+        ]
+
+        if nivel > nivel_actual:
+            if nivel > nivel_actual + 1:
+                self.gestor_errores.agregar(
+                    " " * espacios_iniciales,
+                    "INDENTACION_INVALIDA",
+                    "Indentación inválida en línea "
+                    + str(self.linea)
+                    + ", columna 1",
+                    self.linea,
+                    1,
+                    "Sintáctico",
+                )
+                nivel = nivel_actual + 1
+
+            self.niveles_indentacion.append(nivel)
+            self.pendientes.append(
+                self._crear_token(
+                    "",
+                    "INDENT",
+                    self.linea,
+                    1,
+                )
+            )
+        elif nivel < nivel_actual:
+            while (
+                len(self.niveles_indentacion) > 1
+                and self.niveles_indentacion[
+                    len(self.niveles_indentacion) - 1
+                ] > nivel
+            ):
+                self.niveles_indentacion.pop()
+                self.pendientes.append(
+                    self._crear_token(
+                        "",
+                        "DEDENT",
+                        self.linea,
+                        1,
+                    )
+                )
+
         self._consumir_espacios(espacios_iniciales)
         linea = self.linea
         columna = self.columna
@@ -173,6 +235,13 @@ class AnalizadorLexico:
             self._leer_texto()
         else:
             self._agregar_fin_linea()
+
+    def _agregar_dedents(self, linea, columna):
+        while len(self.niveles_indentacion) > 1:
+            self.niveles_indentacion.pop()
+            self.pendientes.append(
+                self._crear_token("", "DEDENT", linea, columna)
+            )
 
     def _leer_cita(self, espacios_iniciales):
         self._consumir_espacios(espacios_iniciales)
