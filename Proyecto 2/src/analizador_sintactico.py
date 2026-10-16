@@ -77,6 +77,10 @@ class AnalizadorSintactico:
             nodo.agregar_hijo(self.parsear_regla())
         elif tipo == "CERCA_CODIGO":
             nodo.agregar_hijo(self.parsear_bloque_codigo())
+        elif tipo == "VIÑETA":
+            nodo.agregar_hijo(self.parsear_lista())
+        elif tipo == "CITA":
+            nodo.agregar_hijo(self.parsear_cita())
         elif tipo == "SALTO_PARRAFO":
             nodo.agregar_hijo(self._consumir("SALTO_PARRAFO"))
         elif tipo in ("NEGRITA", "CURSIVA", "CODIGO_INLINE", "TEXTO"):
@@ -102,6 +106,64 @@ class AnalizadorSintactico:
         nodo = NodoAST("regla")
         nodo.agregar_hijo(self._consumir("REGLA_HORIZONTAL"))
         nodo.agregar_hijo(self._consumir("FIN_LINEA"))
+        return nodo
+
+    def parsear_lista(self):
+        nodo = NodoAST("lista")
+        nodo.agregar_hijo(self.parsear_item_lista())
+        nodo.agregar_hijo(self.parsear_lista_resto())
+        return nodo
+
+    def parsear_lista_resto(self):
+        nodo = NodoAST("lista_resto")
+        if self._actual().tipo == "VIÑETA":
+            nodo.agregar_hijo(self.parsear_item_lista())
+            nodo.agregar_hijo(self.parsear_lista_resto())
+        return nodo
+
+    def parsear_item_lista(self):
+        nodo = NodoAST("item_lista")
+        nodo.agregar_hijo(self._consumir("VIÑETA"))
+        nodo.agregar_hijo(self.parsear_en_linea())
+        nodo.agregar_hijo(self._consumir("FIN_LINEA"))
+        nodo.agregar_hijo(self.parsear_sublista_opt())
+        return nodo
+
+    def parsear_sublista_opt(self):
+        nodo = NodoAST("sublista_opt")
+        if self._actual().tipo == "INDENT":
+            nodo.agregar_hijo(self._consumir("INDENT"))
+            nodo.agregar_hijo(self.parsear_lista())
+            nodo.agregar_hijo(self._consumir("DEDENT"))
+        return nodo
+
+    def parsear_cita(self):
+        nodo = NodoAST("cita")
+        nodo.agregar_hijo(self.parsear_linea_cita())
+        nodo.agregar_hijo(self.parsear_cita_resto())
+        return nodo
+
+    def parsear_cita_resto(self):
+        nodo = NodoAST("cita_resto")
+        if self._actual().tipo == "CITA":
+            nodo.agregar_hijo(self.parsear_linea_cita())
+            nodo.agregar_hijo(self.parsear_cita_resto())
+        return nodo
+
+    def parsear_linea_cita(self):
+        nodo = NodoAST("linea_cita")
+        nodo.agregar_hijo(self._consumir("CITA"))
+        nodo.agregar_hijo(self.parsear_cuerpo_cita())
+        return nodo
+
+    def parsear_cuerpo_cita(self):
+        nodo = NodoAST("cuerpo_cita")
+        if self._actual().tipo == "CITA":
+            nodo.agregar_hijo(self._consumir("CITA"))
+            nodo.agregar_hijo(self.parsear_cuerpo_cita())
+        else:
+            nodo.agregar_hijo(self.parsear_en_linea())
+            nodo.agregar_hijo(self._consumir("FIN_LINEA"))
         return nodo
 
     def parsear_parrafo(self):

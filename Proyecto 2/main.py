@@ -35,6 +35,14 @@ def main():
 
     print("Árbol sintáctico:")
     arbol.imprimir(0)
+    print(
+        "Profundidad máxima de listas:",
+        arbol.profundidad_maxima_listas(),
+    )
+    print(
+        "Profundidad máxima de citas:",
+        arbol.profundidad_maxima_citas(),
+    )
     print("\nErrores:")
     if gestor_errores.hay_errores():
         gestor_errores.imprimir()
