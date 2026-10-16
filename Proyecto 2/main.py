@@ -2,35 +2,13 @@ import os
 import sys
 
 from src.analizador_lexico import AnalizadorLexico
+from src.analizador_sintactico import AnalizadorSintactico
 from src.gestor_errores import GestorErrores
 
 
 def leer_archivo(ruta):
     with open(ruta, "r", encoding="utf-8") as archivo:
         return archivo.read()
-
-
-def imprimir_tokens(tokens):
-    print("No.  Lexema                            Tipo                 Línea Columna")
-    print("-" * 78)
-
-    for token in tokens:
-        lexema = token.lexema
-        if token.tipo == "FIN_LINEA":
-            lexema = "(fin de línea)"
-        elif token.tipo == "SALTO_PARRAFO":
-            lexema = "(salto de párrafo)"
-        elif token.tipo == "EOF":
-            lexema = "(fin de archivo)"
-        elif token.tipo == "INDENT":
-            lexema = "(inicio de indentación)"
-        elif token.tipo == "DEDENT":
-            lexema = "(fin de indentación)"
-
-        print(
-            f"{token.numero:<4} {lexema:<34} {token.tipo:<20} "
-            f"{token.linea:<6} {token.columna:<7}"
-        )
 
 
 def main():
@@ -52,7 +30,17 @@ def main():
     gestor_errores = GestorErrores()
     analizador = AnalizadorLexico(contenido, gestor_errores)
     tokens = analizador.tokenizar()
-    imprimir_tokens(tokens)
+    analizador_sintactico = AnalizadorSintactico(tokens, gestor_errores)
+    arbol = analizador_sintactico.parsear_documento()
+
+    print("Árbol sintáctico:")
+    arbol.imprimir(0)
+    print("\nErrores:")
+    if gestor_errores.hay_errores():
+        gestor_errores.imprimir()
+    else:
+        print("No se encontraron errores.")
+
     return 0
 
 

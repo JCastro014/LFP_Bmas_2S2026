@@ -98,26 +98,7 @@ class AnalizadorLexico:
             return
 
         if espacios_iniciales == 0 and caracter == "#":
-            cantidad_numerales = self._cantidad_caracteres("#", 0)
-            if cantidad_numerales > 6:
-                self._registrar_error(
-                    "#" * cantidad_numerales,
-                    "ENCABEZADO_INVALIDO",
-                    "Encabezado inválido en línea "
-                    + str(linea_inicio)
-                    + ": máximo 6 niveles",
-                    linea_inicio,
-                    columna_inicio,
-                )
-                self._leer_toda_linea_como_texto()
-                return
-
-            if (
-                cantidad_numerales >= 1
-                and cantidad_numerales <= 6
-                and self._ver(cantidad_numerales) == " "
-            ):
-                self._leer_encabezado(cantidad_numerales)
+            if self._procesar_marcador_encabezado(linea_inicio, columna_inicio):
                 return
 
         if caracter == ">":
@@ -129,6 +110,32 @@ class AnalizadorLexico:
             return
 
         self._leer_texto()
+
+    def _procesar_marcador_encabezado(self, linea, columna):
+        cantidad_numerales = self._cantidad_caracteres("#", 0)
+
+        if cantidad_numerales > 6:
+            lexema = "#" * cantidad_numerales
+            descripcion = (
+                "Encabezado inválido en línea "
+                + str(linea)
+                + ": máximo 6 niveles"
+            )
+            self._registrar_error(
+                lexema,
+                "ENCABEZADO_INVALIDO",
+                descripcion,
+                linea,
+                columna,
+            )
+            self._leer_toda_linea_como_texto()
+            return True
+
+        if cantidad_numerales > 0 and self._ver(cantidad_numerales) == " ":
+            self._leer_encabezado(cantidad_numerales)
+            return True
+
+        return False
 
     def _leer_regla_horizontal(self):
         linea = self.linea
@@ -181,6 +188,24 @@ class AnalizadorLexico:
             len(self.niveles_indentacion) - 1
         ]
 
+        self._ajustar_nivel_lista(nivel, nivel_actual, espacios_iniciales)
+
+        self._consumir_espacios(espacios_iniciales)
+        linea = self.linea
+        columna = self.columna
+        lexema = self._actual()
+        self._avanzar()
+        self.pendientes.append(
+            self._crear_token(lexema, "VIÑETA", linea, columna)
+        )
+        self._avanzar()
+
+        if not self._termino() and not self._es_fin_linea():
+            self._leer_texto()
+        else:
+            self._agregar_fin_linea()
+
+    def _ajustar_nivel_lista(self, nivel, nivel_actual, espacios_iniciales):
         if nivel > nivel_actual:
             if nivel > nivel_actual + 1:
                 self.gestor_errores.agregar(
@@ -221,21 +246,6 @@ class AnalizadorLexico:
                     )
                 )
 
-        self._consumir_espacios(espacios_iniciales)
-        linea = self.linea
-        columna = self.columna
-        lexema = self._actual()
-        self._avanzar()
-        self.pendientes.append(
-            self._crear_token(lexema, "VIÑETA", linea, columna)
-        )
-        self._avanzar()
-
-        if not self._termino() and not self._es_fin_linea():
-            self._leer_texto()
-        else:
-            self._agregar_fin_linea()
-
     def _agregar_dedents(self, linea, columna):
         while len(self.niveles_indentacion) > 1:
             self.niveles_indentacion.pop()
@@ -245,45 +255,49 @@ class AnalizadorLexico:
 
     def _leer_cita(self, espacios_iniciales):
         self._consumir_espacios(espacios_iniciales)
-        cantidad_citas = 0
-        fin_citas = False
 
-        while not self._termino() and self._actual() == ">" and not fin_citas:
-            linea = self.linea
-            columna = self.columna
-            self._avanzar()
-            self.pendientes.append(
-                self._crear_token(">", "CITA", linea, columna)
-            )
-            cantidad_citas += 1
-
-            if self._termino() or self._es_fin_linea():
-                fin_citas = True
-            elif self._actual() == ">":
-                continue
-            elif self._actual() == " ":
-                self._avanzar()
-                if not self._termino() and self._actual() == ">":
-                    continue
-                fin_citas = True
-            else:
-                self.gestor_errores.agregar(
-                    ">",
-                    "CITA_MAL_FORMADA",
-                    "Cita mal formada en línea "
-                    + str(linea)
-                    + ", columna "
-                    + str(columna),
-                    linea,
-                    columna,
-                    "Sintáctico",
-                )
-                fin_citas = True
+        while not self._termino() and self._actual() == ">":
+            if not self._leer_marcador_cita():
+                break
 
         if self._termino() or self._es_fin_linea():
             self._agregar_fin_linea()
         else:
             self._leer_texto()
+
+    def _leer_marcador_cita(self):
+        linea = self.linea
+        columna = self.columna
+        self._avanzar()
+        self.pendientes.append(
+            self._crear_token(">", "CITA", linea, columna)
+        )
+
+        if self._termino() or self._es_fin_linea():
+            return False
+
+        if self._actual() == ">":
+            return True
+
+        if self._actual() == " ":
+            self._avanzar()
+            return not self._termino() and self._actual() == ">"
+
+        descripcion = (
+            "Cita mal formada en línea "
+            + str(linea)
+            + ", columna "
+            + str(columna)
+        )
+        self.gestor_errores.agregar(
+            ">",
+            "CITA_MAL_FORMADA",
+            descripcion,
+            linea,
+            columna,
+            "Sintáctico",
+        )
+        return False
 
     def _es_cerca_codigo(self):
         return (
@@ -329,10 +343,23 @@ class AnalizadorLexico:
         self.modo_literal = True
 
     def _leer_bloque_literal(self):
+        contenido, hay_linea_contenido = self._leer_lineas_literales()
+
+        if hay_linea_contenido:
+            self.pendientes.append(
+                self._crear_token(
+                    contenido,
+                    "TEXTO_LITERAL",
+                    self.linea_inicio_literal,
+                    self.columna_inicio_literal,
+                )
+            )
+
+        self._cerrar_bloque_literal()
+
+    def _leer_lineas_literales(self):
         contenido = ""
         hay_linea_contenido = False
-        linea_cierre = self.linea
-        columna_cierre = self.columna
 
         while not self._termino() and not self._es_cerca_codigo():
             linea_actual = self.linea
@@ -354,16 +381,9 @@ class AnalizadorLexico:
             if not self._termino():
                 self._consumir_fin_linea()
 
-        if hay_linea_contenido:
-            self.pendientes.append(
-                self._crear_token(
-                    contenido,
-                    "TEXTO_LITERAL",
-                    self.linea_inicio_literal,
-                    self.columna_inicio_literal,
-                )
-            )
+        return contenido, hay_linea_contenido
 
+    def _cerrar_bloque_literal(self):
         if self._termino():
             self.gestor_errores.agregar(
                 "```",
@@ -427,14 +447,7 @@ class AnalizadorLexico:
                     linea_texto,
                     columna_texto,
                 )
-                linea = self.linea
-                columna = self.columna
-                inicio = self.posicion
-                self._avanzar()
-                self._avanzar()
-                lexema = self._obtener_lexema(inicio)
-                token = self._crear_token(lexema, "NEGRITA", linea, columna)
-                self.pendientes.append(token)
+                token = self._leer_marca_formato("NEGRITA", 2)
 
                 if negrita_abierta:
                     negrita_abierta = False
@@ -442,8 +455,8 @@ class AnalizadorLexico:
                 else:
                     negrita_abierta = True
                     token_negrita = token
-                    linea_negrita = linea
-                    columna_negrita = columna
+                    linea_negrita = token.linea
+                    columna_negrita = token.columna
 
                 inicio_texto = self.posicion
                 linea_texto = self.linea
@@ -454,13 +467,7 @@ class AnalizadorLexico:
                     linea_texto,
                     columna_texto,
                 )
-                linea = self.linea
-                columna = self.columna
-                inicio = self.posicion
-                self._avanzar()
-                lexema = self._obtener_lexema(inicio)
-                token = self._crear_token(lexema, "CURSIVA", linea, columna)
-                self.pendientes.append(token)
+                token = self._leer_marca_formato("CURSIVA", 1)
 
                 if cursiva_abierta:
                     cursiva_abierta = False
@@ -468,43 +475,19 @@ class AnalizadorLexico:
                 else:
                     cursiva_abierta = True
                     token_cursiva = token
-                    linea_cursiva = linea
-                    columna_cursiva = columna
+                    linea_cursiva = token.linea
+                    columna_cursiva = token.columna
 
                 inicio_texto = self.posicion
                 linea_texto = self.linea
                 columna_texto = self.columna
-            elif (
-                self._actual() == "`"
-                and self._ver(1) == "`"
-                and self._ver(2) == "`"
-            ):
-                self._avanzar()
-                self._avanzar()
-                self._avanzar()
             elif self._actual() == "`":
-                posicion_cierre = self._buscar_cierre_codigo()
-                if posicion_cierre == -1:
-                    linea = self.linea
-                    columna = self.columna
-                    self._registrar_error(
-                        "`",
-                        "CODIGO_INLINE_SIN_CERRAR",
-                        "Código en línea sin cerrar iniciado en línea "
-                        + str(linea)
-                        + ", columna "
-                        + str(columna),
-                        linea,
-                        columna,
-                    )
-                    self._avanzar()
-                else:
-                    self._agregar_texto_pendiente(
-                        inicio_texto,
-                        linea_texto,
-                        columna_texto,
-                    )
-                    self._leer_codigo_en_linea(posicion_cierre)
+                codigo_leido = self._procesar_acento_en_texto(
+                    inicio_texto,
+                    linea_texto,
+                    columna_texto,
+                )
+                if codigo_leido:
                     inicio_texto = self.posicion
                     linea_texto = self.linea
                     columna_texto = self.columna
@@ -517,6 +500,79 @@ class AnalizadorLexico:
             columna_texto,
         )
 
+        self._registrar_marcas_sin_cerrar(
+            negrita_abierta,
+            token_negrita,
+            linea_negrita,
+            columna_negrita,
+            cursiva_abierta,
+            token_cursiva,
+            linea_cursiva,
+            columna_cursiva,
+        )
+        self._agregar_fin_linea()
+
+    def _leer_marca_formato(self, tipo, cantidad):
+        linea = self.linea
+        columna = self.columna
+        inicio = self.posicion
+
+        contador = 0
+        while contador < cantidad:
+            self._avanzar()
+            contador += 1
+
+        lexema = self._obtener_lexema(inicio)
+        token = self._crear_token(lexema, tipo, linea, columna)
+        self.pendientes.append(token)
+        return token
+
+    def _procesar_acento_en_texto(self, inicio_texto, linea_texto, columna_texto):
+        if self._ver(1) == "`" and self._ver(2) == "`":
+            self._avanzar()
+            self._avanzar()
+            self._avanzar()
+            return False
+
+        posicion_cierre = self._buscar_cierre_codigo()
+        if posicion_cierre == -1:
+            linea = self.linea
+            columna = self.columna
+            descripcion = (
+                "Código en línea sin cerrar iniciado en línea "
+                + str(linea)
+                + ", columna "
+                + str(columna)
+            )
+            self._registrar_error(
+                "`",
+                "CODIGO_INLINE_SIN_CERRAR",
+                descripcion,
+                linea,
+                columna,
+            )
+            self._avanzar()
+            return False
+
+        self._agregar_texto_pendiente(
+            inicio_texto,
+            linea_texto,
+            columna_texto,
+        )
+        self._leer_codigo_en_linea(posicion_cierre)
+        return True
+
+    def _registrar_marcas_sin_cerrar(
+        self,
+        negrita_abierta,
+        token_negrita,
+        linea_negrita,
+        columna_negrita,
+        cursiva_abierta,
+        token_cursiva,
+        linea_cursiva,
+        columna_cursiva,
+    ):
         if negrita_abierta:
             self._registrar_error(
                 token_negrita.lexema,
@@ -542,8 +598,6 @@ class AnalizadorLexico:
                 columna_cursiva,
             )
             token_cursiva.tipo = "TEXTO"
-
-        self._agregar_fin_linea()
 
     def _agregar_texto_pendiente(self, inicio, linea, columna):
         if inicio < self.posicion:
