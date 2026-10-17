@@ -51,3 +51,15 @@ class NodoAST:
 
         for hijo in self.hijos:
             hijo.imprimir(nivel + 1)
+
+    def texto_arbol(self, nivel=0):
+        sangria = "  " * nivel
+        texto = sangria + self.tipo
+        if self.lexema != "":
+            texto = texto + ": " + self.lexema
+        if self.linea > 0:
+            texto = texto + " (" + str(self.linea) + ", " + str(self.columna) + ")"
+
+        for hijo in self.hijos:
+            texto += "\n" + hijo.texto_arbol(nivel + 1)
+        return texto
