@@ -5,7 +5,10 @@ import webbrowser
 
 from .analizador_lexico import AnalizadorLexico
 from .analizador_sintactico import AnalizadorSintactico
+from .exportador_dot import exportar_dot
+from .generador_estadisticas import GeneradorEstadisticas
 from .generador_html import GeneradorHTML
+from .generador_indice import GeneradorIndice
 from .gestor_errores import GestorErrores
 
 
@@ -18,7 +21,14 @@ class VentanaMarkdownCheck:
 
         self.ruta_archivo = None
         self.ruta_reporte = None
+        self.ruta_reporte2 = None
+        self.ruta_reporte3 = None
+        self.ruta_dot = None
         self.arbol = None
+        carpeta_proyecto = os.path.dirname(
+            os.path.dirname(os.path.abspath(__file__))
+        )
+        self.carpeta_reportes = os.path.join(carpeta_proyecto, "reportes")
 
         self._crear_panel_carga()
 
@@ -176,22 +186,25 @@ class VentanaMarkdownCheck:
 
         self.boton_reporte2 = tk.Button(
             panel,
-            text="Reporte 2",
+            text="Abrir Reporte 2",
             state="disabled",
+            command=self._abrir_reporte2,
         )
         self.boton_reporte2.pack(side="left", padx=4)
 
         self.boton_reporte3 = tk.Button(
             panel,
-            text="Reporte 3",
+            text="Abrir Reporte 3",
             state="disabled",
+            command=self._abrir_reporte3,
         )
         self.boton_reporte3.pack(side="left", padx=4)
 
         self.boton_exportar_arbol = tk.Button(
             panel,
-            text="Exportar árbol",
+            text="Exportar árbol (.dot)",
             state="disabled",
+            command=self._exportar_arbol,
         )
         self.boton_exportar_arbol.pack(side="left", padx=4)
 
@@ -208,12 +221,15 @@ class VentanaMarkdownCheck:
 
         self.ruta_archivo = ruta
         self.ruta_reporte = None
+        self.ruta_reporte2 = None
+        self.ruta_reporte3 = None
+        self.ruta_dot = None
         self.label_archivo.config(
             text=os.path.basename(ruta),
             fg="black",
         )
         self.boton_analizar.config(state="normal")
-        self.boton_reporte1.config(state="disabled")
+        self._deshabilitar_reportes()
         self.label_estado.config(text="Archivo cargado. Presione Analizar.")
 
     def analizar_archivo(self):
@@ -221,7 +237,10 @@ class VentanaMarkdownCheck:
             return
 
         self.ruta_reporte = None
-        self.boton_reporte1.config(state="disabled")
+        self.ruta_reporte2 = None
+        self.ruta_reporte3 = None
+        self.ruta_dot = None
+        self._deshabilitar_reportes()
         try:
             with open(self.ruta_archivo, "r", encoding="utf-8") as archivo:
                 texto = archivo.read()
@@ -270,23 +289,47 @@ class VentanaMarkdownCheck:
         self.label_estado.config(
             text="Análisis correcto, 0 errores" + estado_profundidad
         )
-        self.ruta_reporte = os.path.join(
-            "reportes",
+        ruta_reporte1 = os.path.join(
+            self.carpeta_reportes,
             "reporte1_documento.html",
         )
+        ruta_reporte2 = os.path.join(
+            self.carpeta_reportes,
+            "reporte2_estadisticas.html",
+        )
+        ruta_reporte3 = os.path.join(
+            self.carpeta_reportes,
+            "reporte3_indice.html",
+        )
+        ruta_dot = os.path.join(self.carpeta_reportes, "arbol.dot")
         try:
-            os.makedirs("reportes", exist_ok=True)
-            generador = GeneradorHTML(
+            os.makedirs(self.carpeta_reportes, exist_ok=True)
+            GeneradorHTML(
                 self.arbol,
                 os.path.basename(self.ruta_archivo),
-            )
-            generador.guardar(self.ruta_reporte)
+            ).guardar(ruta_reporte1)
+            GeneradorEstadisticas(
+                self.arbol,
+                os.path.basename(self.ruta_archivo),
+            ).guardar(ruta_reporte2)
+            GeneradorIndice(
+                self.arbol,
+                os.path.basename(self.ruta_archivo),
+            ).guardar(ruta_reporte3)
+            exportar_dot(self.arbol, ruta_dot)
         except OSError as error:
-            self.ruta_reporte = None
+            self.label_estado.config(text="No se pudieron guardar los reportes.")
             messagebox.showerror("Error al guardar reporte", str(error))
             return
 
+        self.ruta_reporte = ruta_reporte1
+        self.ruta_reporte2 = ruta_reporte2
+        self.ruta_reporte3 = ruta_reporte3
+        self.ruta_dot = ruta_dot
         self.boton_reporte1.config(state="normal")
+        self.boton_reporte2.config(state="normal")
+        self.boton_reporte3.config(state="normal")
+        self.boton_exportar_arbol.config(state="normal")
 
     def _poblar_tokens(self, tokens):
         for fila in self.tabla_tokens.get_children():
@@ -350,6 +393,49 @@ class VentanaMarkdownCheck:
     def _abrir_reporte(self):
         if self.ruta_reporte is None:
             return
-        ruta_absoluta = os.path.abspath(self.ruta_reporte)
-        ruta_navegador = "file:///" + ruta_absoluta.replace("\\", "/")
+        self._abrir_ruta(self.ruta_reporte)
+
+    def _abrir_reporte2(self):
+        if self.ruta_reporte2 is None:
+            return
+        self._abrir_ruta(self.ruta_reporte2)
+
+    def _abrir_reporte3(self):
+        if self.ruta_reporte3 is None:
+            return
+        self._abrir_ruta(self.ruta_reporte3)
+
+    def _abrir_ruta(self, ruta):
+        ruta_absoluta = os.path.abspath(ruta)
+        ruta_con_barras = ""
+        for caracter in ruta_absoluta:
+            if caracter == "\\":
+                ruta_con_barras += "/"
+            else:
+                ruta_con_barras += caracter
+        ruta_navegador = "file:///" + ruta_con_barras
         webbrowser.open(ruta_navegador)
+
+    def _exportar_arbol(self):
+        if self.arbol is None:
+            return
+
+        ruta = os.path.join(self.carpeta_reportes, "arbol.dot")
+        try:
+            os.makedirs(self.carpeta_reportes, exist_ok=True)
+            exportar_dot(self.arbol, ruta)
+        except OSError as error:
+            messagebox.showerror("Error al exportar árbol", str(error))
+            return
+
+        self.ruta_dot = ruta
+        messagebox.showinfo(
+            "Árbol exportado",
+            "Archivo generado en: " + os.path.abspath(ruta),
+        )
+
+    def _deshabilitar_reportes(self):
+        self.boton_reporte1.config(state="disabled")
+        self.boton_reporte2.config(state="disabled")
+        self.boton_reporte3.config(state="disabled")
+        self.boton_exportar_arbol.config(state="disabled")
