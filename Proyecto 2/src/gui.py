@@ -36,7 +36,6 @@ class VentanaMarkdownCheck:
         self.notebook.pack(fill="both", expand=True, padx=10, pady=5)
         self._crear_panel_tokens()
         self._crear_panel_errores()
-        self._crear_panel_arbol()
         self._crear_panel_reportes()
 
         self.label_estado = tk.Label(
@@ -146,30 +145,6 @@ class VentanaMarkdownCheck:
         self.tabla_errores.pack(side="left", fill="both", expand=True)
         scroll.pack(side="right", fill="y")
 
-    def _crear_panel_arbol(self):
-        panel = ttk.Frame(self.notebook)
-        self.notebook.add(panel, text="Árbol sintáctico")
-
-        self.texto_arbol = tk.Text(panel, wrap="none", state="disabled")
-        scroll_vertical = ttk.Scrollbar(
-            panel,
-            orient="vertical",
-            command=self.texto_arbol.yview,
-        )
-        scroll_horizontal = ttk.Scrollbar(
-            panel,
-            orient="horizontal",
-            command=self.texto_arbol.xview,
-        )
-        self.texto_arbol.configure(
-            yscrollcommand=scroll_vertical.set,
-            xscrollcommand=scroll_horizontal.set,
-        )
-
-        self.texto_arbol.pack(side="top", fill="both", expand=True)
-        scroll_vertical.pack(side="right", fill="y")
-        scroll_horizontal.pack(side="bottom", fill="x")
-
     def _crear_panel_reportes(self):
         panel = tk.Frame(self.raiz)
         panel.pack(fill="x", padx=10, pady=5)
@@ -256,14 +231,10 @@ class VentanaMarkdownCheck:
             tokens,
             gestor_errores,
         )
-        self.arbol = analizador_sintactico.parsear_documento()
+        self.arbol = analizador_sintactico.parsear_documento(        )
 
         self._poblar_tokens(tokens)
         self._poblar_errores(gestor_errores.errores)
-        self.texto_arbol.config(state="normal")
-        self.texto_arbol.delete("1.0", "end")
-        self.texto_arbol.insert("1.0", self.arbol.texto_arbol(0))
-        self.texto_arbol.config(state="disabled")
 
         cantidad_errores = gestor_errores.cantidad()
         profundidad_listas = self.arbol.profundidad_maxima_listas()
