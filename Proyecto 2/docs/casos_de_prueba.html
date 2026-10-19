@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Casos de prueba</title>
+<style>
+body {
+    font-family: Verdana, sans-serif;
+    background: #f4f1ea;
+    color: #222;
+    margin: 24px;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 10px;
+}
+th, td {
+    border: 1px solid #8b3a3a;
+    padding: 8px;
+    text-align: left;
+    vertical-align: top;
+}
+pre {
+    white-space: pre-wrap;
+    margin: 0;
+}
+.captura {
+    height: 90px;
+    border: 1px solid #999;
+    margin-bottom: 24px;
+    padding: 8px;
+}
+</style>
+</head>
+<body>
+<h1>Casos de prueba</h1>
+<h2>Caso 1</h2>
+<table>
+<tr><th>Número</th><td>1</td></tr>
+<tr><th>Archivo</th><td>ejemplo_valido.md</td></tr>
+<tr><th>Descripción</th><td>Documento válido con listas y citas anidadas.</td></tr>
+<tr><th>Entrada</th><td><pre># Proyecto de Lenguajes Formales
+
+Este curso combina **teoría sólida** y *práctica de código*, con ejemplos en `Python`.
+
+## Contenido del curso
+
+- Análisis léxico
+  - Autómatas finitos
+  - Expresiones regulares
+- Análisis sintáctico
+  - Gramáticas libres de contexto
+    - Recursión por la izquierda
+    - Recursión por la derecha
+- Generación de código
+
+&gt; El análisis sintáctico es donde la teoría se encuentra con la práctica.
+&gt;&gt; Y donde más se aprende, según los estudiantes.
+
+```python
+def hola():
+    print("Hola LFP")
+```
+
+---
+
+Fin del documento.</pre></td></tr>
+<tr><th>Esperado</th><td>0 errores, profundidad de listas 3, profundidad de citas 2</td></tr>
+<tr><th>Obtenido</th><td>0 errores, profundidad de listas 3, profundidad de citas 2, primer token NUMERAL</td></tr>
+<tr><th>Resultado</th><td>Cumple</td></tr>
+</table>
+<div class="captura">Captura de la GUI:</div>
+<h2>Caso 2</h2>
+<table>
+<tr><th>Número</th><td>2</td></tr>
+<tr><th>Archivo</th><td>lista_3_niveles.md</td></tr>
+<tr><th>Descripción</th><td>Lista con tres niveles de indentación.</td></tr>
+<tr><th>Entrada</th><td><pre>- nivel cero
+  - nivel uno
+    - nivel dos
+</pre></td></tr>
+<tr><th>Esperado</th><td>0 errores, profundidad de listas 3, profundidad de citas 0</td></tr>
+<tr><th>Obtenido</th><td>0 errores, profundidad de listas 3, profundidad de citas 0, primer token VIÑETA</td></tr>
+<tr><th>Resultado</th><td>Cumple</td></tr>
+</table>
+<div class="captura">Captura de la GUI:</div>
+<h2>Caso 3</h2>
+<table>
+<tr><th>Número</th><td>3</td></tr>
+<tr><th>Archivo</th><td>citas_anidadas.md</td></tr>
+<tr><th>Descripción</th><td>Dos líneas de cita con dos niveles.</td></tr>
+<tr><th>Entrada</th><td><pre>&gt; uno
+&gt;&gt; dos
+</pre></td></tr>
+<tr><th>Esperado</th><td>0 errores, profundidad de listas 0, profundidad de citas 2</td></tr>
+<tr><th>Obtenido</th><td>0 errores, profundidad de listas 0, profundidad de citas 2, primer token CITA</td></tr>
+<tr><th>Resultado</th><td>Cumple</td></tr>
+</table>
+<div class="captura">Captura de la GUI:</div>
+<h2>Caso 4</h2>
+<table>
+<tr><th>Número</th><td>4</td></tr>
+<tr><th>Archivo</th><td>negrita_sin_cerrar.md</td></tr>
+<tr><th>Descripción</th><td>Marcador de negrita sin cierre.</td></tr>
+<tr><th>Entrada</th><td><pre>Esto es **importante
+</pre></td></tr>
+<tr><th>Esperado</th><td>1 error NEGRITA_SIN_CERRAR, Léxico, línea 1, columna 9</td></tr>
+<tr><th>Obtenido</th><td>1 error(es): NEGRITA_SIN_CERRAR, Léxico, línea 1, columna 9</td></tr>
+<tr><th>Resultado</th><td>Cumple</td></tr>
+</table>
+<div class="captura">Captura de la GUI:</div>
+<h2>Caso 5</h2>
+<table>
+<tr><th>Número</th><td>5</td></tr>
+<tr><th>Archivo</th><td>cursiva_sin_cerrar.md</td></tr>
+<tr><th>Descripción</th><td>Marcador de cursiva sin cierre.</td></tr>
+<tr><th>Entrada</th><td><pre>Esto es *importante
+</pre></td></tr>
+<tr><th>Esperado</th><td>1 error CURSIVA_SIN_CERRAR, Léxico, línea 1, columna 9</td></tr>
+<tr><th>Obtenido</th><td>1 error(es): CURSIVA_SIN_CERRAR, Léxico, línea 1, columna 9</td></tr>
+<tr><th>Resultado</th><td>Cumple</td></tr>
+</table>
+<div class="captura">Captura de la GUI:</div>
+<h2>Caso 6</h2>
+<table>
+<tr><th>Número</th><td>6</td></tr>
+<tr><th>Archivo</th><td>codigo_inline_sin_cerrar.md</td></tr>
+<tr><th>Descripción</th><td>Código en línea sin cierre.</td></tr>
+<tr><th>Entrada</th><td><pre>Esto es `abierto
+</pre></td></tr>
+<tr><th>Esperado</th><td>1 error CODIGO_INLINE_SIN_CERRAR, Léxico, línea 1, columna 9</td></tr>
+<tr><th>Obtenido</th><td>1 error(es): CODIGO_INLINE_SIN_CERRAR, Léxico, línea 1, columna 9</td></tr>
+<tr><th>Resultado</th><td>Cumple</td></tr>
+</table>
+<div class="captura">Captura de la GUI:</div>
+<h2>Caso 7</h2>
+<table>
+<tr><th>Número</th><td>7</td></tr>
+<tr><th>Archivo</th><td>encabezado_invalido.md</td></tr>
+<tr><th>Descripción</th><td>Encabezado con más de seis numerales.</td></tr>
+<tr><th>Entrada</th><td><pre>####### demasiado
+</pre></td></tr>
+<tr><th>Esperado</th><td>1 error ENCABEZADO_INVALIDO, Léxico, línea 1, columna 1</td></tr>
+<tr><th>Obtenido</th><td>1 error(es): ENCABEZADO_INVALIDO, Léxico, línea 1, columna 1</td></tr>
+<tr><th>Resultado</th><td>Cumple</td></tr>
+</table>
+<div class="captura">Captura de la GUI:</div>
+<h2>Caso 8</h2>
+<table>
+<tr><th>Número</th><td>8</td></tr>
+<tr><th>Archivo</th><td>bloque_sin_cerrar.md</td></tr>
+<tr><th>Descripción</th><td>Bloque de código sin cierre.</td></tr>
+<tr><th>Entrada</th><td><pre>```python
+print(1)
+</pre></td></tr>
+<tr><th>Esperado</th><td>1 error BLOQUE_CODIGO_SIN_CERRAR, Léxico, línea 1, columna 1</td></tr>
+<tr><th>Obtenido</th><td>1 error(es): BLOQUE_CODIGO_SIN_CERRAR, Léxico, línea 1, columna 1</td></tr>
+<tr><th>Resultado</th><td>Cumple</td></tr>
+</table>
+<div class="captura">Captura de la GUI:</div>
+<h2>Caso 9</h2>
+<table>
+<tr><th>Número</th><td>9</td></tr>
+<tr><th>Archivo</th><td>indentacion_invalida.md</td></tr>
+<tr><th>Descripción</th><td>Lista que salta dos niveles de indentación.</td></tr>
+<tr><th>Entrada</th><td><pre>- uno
+    - dos
+</pre></td></tr>
+<tr><th>Esperado</th><td>1 error INDENTACION_INVALIDA, Sintáctico, línea 2, columna 1</td></tr>
+<tr><th>Obtenido</th><td>1 error(es): INDENTACION_INVALIDA, Sintáctico, línea 2, columna 1</td></tr>
+<tr><th>Resultado</th><td>Cumple</td></tr>
+</table>
+<div class="captura">Captura de la GUI:</div>
+<h2>Caso 10</h2>
+<table>
+<tr><th>Número</th><td>10</td></tr>
+<tr><th>Archivo</th><td>cita_mal_formada.md</td></tr>
+<tr><th>Descripción</th><td>Marcador de cita sin espacio después.</td></tr>
+<tr><th>Entrada</th><td><pre>&gt;sin espacio
+</pre></td></tr>
+<tr><th>Esperado</th><td>1 error CITA_MAL_FORMADA, Sintáctico, línea 1, columna 1</td></tr>
+<tr><th>Obtenido</th><td>1 error(es): CITA_MAL_FORMADA, Sintáctico, línea 1, columna 1</td></tr>
+<tr><th>Resultado</th><td>Cumple</td></tr>
+</table>
+<div class="captura">Captura de la GUI:</div>
+<h2>Caso 11</h2>
+<table>
+<tr><th>Número</th><td>11</td></tr>
+<tr><th>Archivo</th><td>borde_vacio.md</td></tr>
+<tr><th>Descripción</th><td>Archivo vacío.</td></tr>
+<tr><th>Entrada</th><td><pre></pre></td></tr>
+<tr><th>Esperado</th><td>0 errores</td></tr>
+<tr><th>Obtenido</th><td>0 errores, profundidad de listas 0, profundidad de citas 0, primer token EOF</td></tr>
+<tr><th>Resultado</th><td>Cumple</td></tr>
+</table>
+<div class="captura">Captura de la GUI:</div>
+<h2>Caso 12</h2>
+<table>
+<tr><th>Número</th><td>12</td></tr>
+<tr><th>Archivo</th><td>borde_sin_espacio.md</td></tr>
+<tr><th>Descripción</th><td>Numeral sin espacio: debe quedar como texto.</td></tr>
+<tr><th>Entrada</th><td><pre>#sinespacio
+</pre></td></tr>
+<tr><th>Esperado</th><td>0 errores, profundidad de listas 0, profundidad de citas 0, primer token TEXTO</td></tr>
+<tr><th>Obtenido</th><td>0 errores, profundidad de listas 0, profundidad de citas 0, primer token TEXTO</td></tr>
+<tr><th>Resultado</th><td>Cumple</td></tr>
+</table>
+<div class="captura">Captura de la GUI:</div>
+<h2>Caso 13</h2>
+<table>
+<tr><th>Número</th><td>13</td></tr>
+<tr><th>Archivo</th><td>borde_negrita_cursiva.md</td></tr>
+<tr><th>Descripción</th><td>Cursiva anidada dentro de negrita.</td></tr>
+<tr><th>Entrada</th><td><pre>**negrita con *cursiva* adentro**
+</pre></td></tr>
+<tr><th>Esperado</th><td>0 errores, profundidad de listas 0, profundidad de citas 0</td></tr>
+<tr><th>Obtenido</th><td>0 errores, profundidad de listas 0, profundidad de citas 0, primer token NEGRITA</td></tr>
+<tr><th>Resultado</th><td>Cumple</td></tr>
+</table>
+<div class="captura">Captura de la GUI:</div>
+<h2>13 de 13 casos cumplen</h2>
+</body>
+</html>

@@ -402,6 +402,14 @@ class AnalizadorLexico:
                     self.columna,
                 )
             )
+            self.pendientes.append(
+                self._crear_token(
+                    "",
+                    "FIN_LINEA",
+                    self.linea,
+                    self.columna,
+                )
+            )
             self.modo_literal = False
             return
 

@@ -175,6 +175,7 @@ assert tipos == [
     "FIN_LINEA",
     "TEXTO_LITERAL",
     "CERCA_CODIGO",
+    "FIN_LINEA",
     "EOF",
 ]
 assert tokens[3].lexema == "sin cierre"
