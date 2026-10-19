@@ -1,25 +1,99 @@
+# MarkdownCheck
 
-## Cómo usar la aplicación
+Proyecto 2 de Lenguajes Formales y de Programación, Sección B+, Segundo Semestre 2026.
+Universidad de San Carlos de Guatemala, Facultad de Ingeniería.
 
-1. Ejecutar `python main.py`.
-2. Presionar **Cargar archivo .hor** y seleccionar un archivo (ver ejemplos en `datos/`).
-3. Presionar **Analizar** para ejecutar el motor léxico.
-4. Revisar la tabla de tokens reconocidos y, si aplica, la tabla de errores léxicos.
-5. Abrir cualquiera de los 3 reportes o exportar el diagrama del AFD desde los botones habilitados tras el análisis.
+**Autor:** Josué Eliú Castro Sosa, carné 202405110
 
-Instrucciones detalladas, con capturas de pantalla, en `Documentacion/Manual_de_Usuario_HorarioScript.pdf`.
+## Descripción
 
-## Tipos de token reconocidos
+MarkdownCheck es un analizador léxico-sintáctico hecho en Python que lee archivos `.md`
+(un subconjunto de Markdown) y los traduce a HTML.
 
-Palabras reservadas de bloque, elemento y relación; `CODIGO`, `CADENA`, `HORA`, `ENTERO`, `DIA`, `CATEGORIA`, `SIMBOLO` y `COMENTARIO_LINEA` — 11 tipos en total. Detalle completo en `Documentacion/Manual_Tecnico_HorarioScript.pdf`.
+- El **analizador léxico** es un AFD implementado a mano (sin el módulo `re`).
+- El **analizador sintáctico** es un parser descendente recursivo implementado a mano,
+  con una función por cada símbolo no terminal de la gramática de la Tarea 4.
+- Del parser sale un **árbol de derivación (AST)**, y el HTML se genera recorriendo ese árbol.
+- Registra errores léxicos y sintácticos con su posición y sigue analizando (modo pánico).
 
-## Casos de prueba
+## Requisitos
 
-10 casos documentados en `Documentacion/Casos_de_Prueba_HorarioScript.pdf`, cubriendo el archivo válido, los 5 tipos de error léxico, choques de horario (por catedrático y por aula), y 2 casos borde. Los archivos `.hor` de cada caso están en `datos/`.
+- Python 3.10 o superior.
+- Solo biblioteca estándar (Tkinter viene incluido con Python). No hay dependencias que instalar.
+- Opcional: Graphviz, solo si se quiere convertir `arbol.dot` en imagen.
 
-## Restricciones técnicas cumplidas
+## Cómo ejecutar
 
-- No se usa el módulo `re`.
-- No se usan funciones de alto nivel de cadenas (`split`, `find`, etc.) para la tokenización principal; solo indexación carácter a carácter.
-- No se usan generadores automáticos de analizadores léxicos (`ply` o similares).
-- El AFD está implementado a mano, con estados y transiciones explícitas.
+Desde la carpeta `Proyecto 2`:
+
+```
+python main.py
+```
+
+Se abre la interfaz gráfica. Pasos básicos:
+
+1. Cargar un archivo `.md` (hay ejemplos en `examples/`).
+2. Ejecutar el análisis.
+3. Revisar la tabla de tokens y la tabla de errores.
+4. Si no hay errores, abrir los 3 reportes HTML.
+
+También se puede probar con un archivo desde consola:
+
+```
+python main.py examples/ejemplo_valido.md
+```
+
+Pruebas, también desde la raíz de `Proyecto 2`:
+
+```
+python -m tests.prueba_lexico
+python -m tests.prueba_sintactico
+```
+
+## Sintaxis Markdown soportada
+
+- Encabezados `#` a `######`
+- Párrafos
+- **Negrita** (`**`), *cursiva* (`*`) y `código en línea`
+- Listas no ordenadas anidadas (3 o más niveles, 2 espacios por nivel)
+- Citas `>` anidadas (2 o más niveles)
+- Bloques de código con ``` (contenido literal)
+- Regla horizontal `---`
+
+## Salidas generadas
+
+| Salida | Descripción |
+|---|---|
+| Reporte 1 | Documento HTML renderizado desde el AST |
+| Reporte 2 | Estadísticas del documento |
+| Reporte 3 | Tabla de contenido con enlaces internos |
+| `arbol.dot` | Árbol de derivación en Graphviz |
+
+Los reportes solo se generan cuando el análisis termina sin errores.
+
+## Estructura del repositorio
+
+```
+Proyecto 2/
+├── main.py              arranque del programa
+├── README.md
+├── .gitignore
+├── src/                 código fuente (lexer, parser, AST, generadores, GUI)
+├── tests/               pruebas
+├── examples/            archivos .md de ejemplo
+└── docs/                Manual Técnico, Manual de Usuario y Casos de Prueba (PDF)
+```
+
+## Documentación
+
+En la carpeta `docs/`:
+
+- Manual Técnico (PDF)
+- Manual de Usuario (PDF)
+- Casos de Prueba (PDF)
+
+## Restricciones cumplidas
+
+- No se usa el módulo `re` para tokenizar.
+- No se usan librerías de parsing ni de conversión Markdown.
+- El HTML se genera recorriendo el AST, no por sustitución de texto.
